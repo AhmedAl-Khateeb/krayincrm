@@ -33,3 +33,15 @@ node_modules/
 /test-results/
 /blob-report/
 /playwright/.cache/
+
+
+# Laravel writable directories (must NOT be tracked)
+storage/*
+!/storage/.gitignore
+
+bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# Vite build output
+public/build
+public/build/*
