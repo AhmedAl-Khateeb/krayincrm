@@ -2,6 +2,7 @@
 
 namespace Webkul\Admin\DataGrids\Lead;
 
+use App\Support\VisibleUsers;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Webkul\DataGrid\DataGrid;
@@ -82,7 +83,9 @@ class LeadDataGrid extends DataGrid
             ->groupBy('leads.id')
             ->where('leads.lead_pipeline_id', $this->pipeline->id);
 
-        if ($userIds = bouncer()->getAuthorizedUserIds()) {
+        $userIds = VisibleUsers::ids();
+
+        if ($userIds) {
             $queryBuilder->whereIn('leads.user_id', $userIds);
         }
 
@@ -324,9 +327,9 @@ class LeadDataGrid extends DataGrid
                 // ✅ jabber scheme
                 $callUrl = 'jabber://'.$normalized;
 
-                return 
+                return
             '<a href="tel:'.e($callUrl).'" class="px-3 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200">Call</a>'
-        ;
+                ;
             },
         ]);
 
@@ -445,11 +448,22 @@ class LeadDataGrid extends DataGrid
             ]);
         }
 
+        // ✅ زرار Edit
+        if (bouncer()->hasPermission('leads.edit')) {
+            $this->addAction([
+                'icon' => 'icon-edit',
+                'title' => trans('admin::app.leads.index.datagrid.edit'),
+                'method' => 'GET',
+                'url' => fn ($row) => route('admin.leads.edit', $row->id),
+            ]);
+        }
+
+        // ✅ Delete لازم DELETE (مش delete)
         if (bouncer()->hasPermission('leads.delete')) {
             $this->addAction([
                 'icon' => 'icon-delete',
                 'title' => trans('admin::app.leads.index.datagrid.delete'),
-                'method' => 'delete',
+                'method' => 'DELETE',
                 'url' => fn ($row) => route('admin.leads.delete', $row->id),
             ]);
         }

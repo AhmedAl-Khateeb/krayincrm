@@ -2,7 +2,7 @@
 
 namespace Webkul\Admin\Http\Controllers\Contact\Persons;
 
-use Exception;
+use App\Support\VisibleUsers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -14,6 +14,7 @@ use Webkul\Admin\Http\Controllers\Controller;
 use Webkul\Admin\Http\Requests\AttributeForm;
 use Webkul\Admin\Http\Requests\MassDestroyRequest;
 use Webkul\Admin\Http\Resources\PersonResource;
+use Webkul\Contact\Repositories\OrganizationRepository;
 use Webkul\Contact\Repositories\PersonRepository;
 
 class PersonController extends Controller
@@ -23,8 +24,10 @@ class PersonController extends Controller
      *
      * @return void
      */
-    public function __construct(protected PersonRepository $personRepository)
-    {
+    public function __construct(
+        protected PersonRepository $personRepository,
+        protected OrganizationRepository $organizationRepository
+    ) {
         request()->request->add(['entity_type' => 'persons']);
     }
 
@@ -55,13 +58,35 @@ class PersonController extends Controller
     {
         Event::dispatch('contacts.person.create.before');
 
-        $person = $this->personRepository->create($request->all());
+        $data = $request->all();
+
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
+
+        // ✅ non-admin لازم يبقى owner هو نفسه
+        if (!$isAdmin) {
+            $data['user_id'] = $me->id;
+        }
+
+        // ✅ امنع ربط person بـ organization مش تبع نفس اليوزر
+        $userIds = VisibleUsers::ids();
+        $orgId = $data['organization_id'] ?? null;
+
+        if ($orgId) {
+            $org = $this->organizationRepository->find($orgId);
+
+            if (!$org || !in_array($org->user_id, $userIds)) {
+                abort(403);
+            }
+        }
+
+        $person = $this->personRepository->create($data);
 
         Event::dispatch('contacts.person.create.after', $person);
 
         if (request()->ajax()) {
             return response()->json([
-                'data'    => $person,
+                'data' => $person,
                 'message' => trans('admin::app.contacts.persons.index.create-success'),
             ]);
         }
@@ -77,6 +102,11 @@ class PersonController extends Controller
     public function show(int $id): View
     {
         $person = $this->personRepository->findOrFail($id);
+        $userIds = VisibleUsers::ids();
+
+        if (!in_array($person->user_id, $userIds)) {
+            abort(403);
+        }
 
         return view('admin::contacts.persons.view', compact('person'));
     }
@@ -87,6 +117,11 @@ class PersonController extends Controller
     public function edit(int $id): View
     {
         $person = $this->personRepository->findOrFail($id);
+        $userIds = VisibleUsers::ids();
+
+        if (!in_array($person->user_id, $userIds)) {
+            abort(403);
+        }
 
         return view('admin::contacts.persons.edit', compact('person'));
     }
@@ -98,13 +133,35 @@ class PersonController extends Controller
     {
         Event::dispatch('contacts.person.update.before', $id);
 
-        $person = $this->personRepository->update($request->all(), $id);
+        $data = $request->all();
+
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
+
+        // ✅ non-admin ممنوع يغير owner
+        if (!$isAdmin) {
+            $data['user_id'] = $me->id;
+        }
+
+        // ✅ امنع تغيير organization لواحدة مش تبع نفس اليوزر
+        $userIds = VisibleUsers::ids();
+        $orgId = $data['organization_id'] ?? null;
+
+        if ($orgId) {
+            $org = $this->organizationRepository->find($orgId);
+
+            if (!$org || !in_array($org->user_id, $userIds)) {
+                abort(403);
+            }
+        }
+
+        $person = $this->personRepository->update($data, $id);
 
         Event::dispatch('contacts.person.update.after', $person);
 
         if (request()->ajax()) {
             return response()->json([
-                'data'    => $person,
+                'data' => $person,
                 'message' => trans('admin::app.contacts.persons.index.update-success'),
             ], 200);
         }
@@ -139,10 +196,20 @@ class PersonController extends Controller
     {
         $person = $this->personRepository->findOrFail($id);
 
-        if (
-            $person->leads
-            && $person->leads->count() > 0
-        ) {
+        $userIds = VisibleUsers::ids();
+
+        if (!in_array($person->user_id, $userIds)) {
+            abort(403);
+        }
+
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
+
+        if (!$isAdmin && $person->user_id != $me->id) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        if ($person->leads && $person->leads->count() > 0) {
             return response()->json([
                 'message' => trans('admin::app.contacts.persons.index.delete-failed'),
             ], 400);
@@ -158,8 +225,7 @@ class PersonController extends Controller
             return response()->json([
                 'message' => trans('admin::app.contacts.persons.index.delete-success'),
             ], 200);
-
-        } catch (Exception $exception) {
+        } catch (\Exception $exception) {
             return response()->json([
                 'message' => trans('admin::app.contacts.persons.index.delete-failed'),
             ], 400);
@@ -175,16 +241,11 @@ class PersonController extends Controller
             $persons = $this->personRepository->findWhereIn('id', $request->input('indices', []));
 
             $deletedCount = 0;
-
             $blockedCount = 0;
 
             foreach ($persons as $person) {
-                if (
-                    $person->leads
-                    && $person->leads->count() > 0
-                ) {
-                    $blockedCount++;
-
+                if ($person->leads && $person->leads->count() > 0) {
+                    ++$blockedCount;
                     continue;
                 }
 
@@ -194,7 +255,7 @@ class PersonController extends Controller
 
                 Event::dispatch('contact.person.delete.after', $person);
 
-                $deletedCount++;
+                ++$deletedCount;
             }
 
             $statusCode = 200;
@@ -202,31 +263,25 @@ class PersonController extends Controller
             switch (true) {
                 case $deletedCount > 0 && $blockedCount === 0:
                     $message = trans('admin::app.contacts.persons.index.all-delete-success');
-
                     break;
 
                 case $deletedCount > 0 && $blockedCount > 0:
                     $message = trans('admin::app.contacts.persons.index.partial-delete-warning');
-
                     break;
 
                 case $deletedCount === 0 && $blockedCount > 0:
                     $message = trans('admin::app.contacts.persons.index.none-delete-warning');
-
                     $statusCode = 400;
-
                     break;
 
                 default:
                     $message = trans('admin::app.contacts.persons.index.no-selection');
-
                     $statusCode = 400;
-
                     break;
             }
 
             return response()->json(['message' => $message], $statusCode);
-        } catch (Exception $exception) {
+        } catch (\Exception $exception) {
             return response()->json([
                 'message' => trans('admin::app.contacts.persons.index.delete-failed'),
             ], 400);

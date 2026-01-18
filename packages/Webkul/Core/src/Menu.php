@@ -26,12 +26,12 @@ class Menu
     /**
      * Menu area for admin.
      */
-    const ADMIN = 'admin';
+    public const ADMIN = 'admin';
 
     /**
      * Menu area for customer.
      */
-    const CUSTOMER = 'customer';
+    public const CUSTOMER = 'customer';
 
     /**
      * Add a new menu item.
@@ -46,7 +46,7 @@ class Menu
      */
     public function getItems(?string $area = null, string $key = ''): Collection
     {
-        if (! $area) {
+        if (!$area) {
             throw new \Exception('Area must be provided to get menu items.');
         }
 
@@ -59,14 +59,30 @@ class Menu
         $configMenu = collect(config("menu.$area"))->map(function ($item) {
             return Arr::except([
                 ...$item,
-                'url' => route($item['route'], $item['params'] ?? []),
+                'url' => isset($item['route']) ? route($item['route'], $item['params'] ?? []) : '#',
+                'route' => $item['route'] ?? '#',
             ], ['params']);
         });
 
         switch ($area) {
             case self::ADMIN:
                 $this->configMenu = $configMenu
-                    ->filter(fn ($item) => bouncer()->hasPermission($item['key']))
+                    ->filter(function ($item) {
+                        $key = $item['key'];
+
+                        $perms = auth()->guard('user')->user()?->role?->permissions;
+
+                        if (is_string($perms)) {
+                            $perms = json_decode($perms, true);
+                        }
+
+                        if (is_array($perms) && isset($perms[$key]) && is_array($perms[$key]) && count($perms[$key])) {
+                            return true;
+                        }
+
+                        return bouncer()->hasPermission($key);
+                    })
+
                     ->toArray();
                 break;
 
@@ -76,7 +92,7 @@ class Menu
                 break;
         }
 
-        if (! $this->items) {
+        if (!$this->items) {
             $this->prepareMenuItems();
         }
 
@@ -119,11 +135,11 @@ class Menu
         foreach ($menu as $menuItemKey => $menuItem) {
             $this->addItem(new MenuItem(
                 key: $menuItemKey,
-                name: trans($menuItem['name']),
-                route: $menuItem['route'],
-                url: $menuItem['url'],
-                sort: $menuItem['sort'],
-                icon: $menuItem['icon-class'],
+                name: trans($menuItem['name'] ?? $menuItemKey),
+                route: $menuItem['route'] ?? '#',
+                url: $menuItem['url'] ?? '#',
+                sort: $menuItem['sort'] ?? 0,
+                icon: $menuItem['icon-class'] ?? '',
                 info: trans($menuItem['info'] ?? ''),
                 children: $this->processSubMenuItems($menuItem),
             ));
@@ -137,21 +153,22 @@ class Menu
     {
         return collect($menuItem)
             ->sortBy('sort')
-            ->filter(fn ($value) => is_array($value))
-            ->map(function ($subMenuItem) {
-                $subSubMenuItems = $this->processSubMenuItems($subMenuItem);
+             ->filter(fn ($value) => is_array($value) && isset($value['key']))
+             ->sortBy('sort')
+             ->map(function ($subMenuItem) {
+                 $subSubMenuItems = $this->processSubMenuItems($subMenuItem);
 
-                return new MenuItem(
-                    key: $subMenuItem['key'],
-                    name: trans($subMenuItem['name']),
-                    route: $subMenuItem['route'],
-                    url: $subMenuItem['url'],
-                    sort: $subMenuItem['sort'],
-                    icon: $subMenuItem['icon-class'],
-                    info: trans($subMenuItem['info'] ?? ''),
-                    children: $subSubMenuItems,
-                );
-            });
+                 return new MenuItem(
+                     key: $subMenuItem['key'] ?? '',
+                     name: trans($subMenuItem['name'] ?? $subMenuItem['key'] ?? ''),
+                     route: $subMenuItem['route'] ?? '#',
+                     url: $subMenuItem['url'] ?? '#',
+                     sort: $subMenuItem['sort'] ?? 0,
+                     icon: $subMenuItem['icon-class'] ?? '',
+                     info: trans($subMenuItem['info'] ?? ''),
+                     children: $subSubMenuItems,
+                 );
+             });
     }
 
     /**

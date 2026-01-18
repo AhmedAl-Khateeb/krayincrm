@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Application Name
@@ -108,13 +107,13 @@ return [
      */
 
     'available_locales' => [
-        'ar'    => 'Arabic',
-        'en'    => 'English',
-        'es'    => 'Español',
-        'fa'    => 'Persian',
+        'ar' => 'Arabic',
+        'en' => 'English',
+        'es' => 'Español',
+        'fa' => 'Persian',
         'pt_BR' => 'Portuguese',
-        'tr'    => 'Türkçe',
-        'vi'    => 'Vietnamese',
+        'tr' => 'Türkçe',
+        'vi' => 'Vietnamese',
     ],
 
     /*
@@ -233,5 +232,4 @@ return [
      */
 
     'aliases' => Facade::defaultAliases()->merge([])->toArray(),
-
 ];

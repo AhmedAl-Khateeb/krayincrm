@@ -10,7 +10,8 @@ use Webkul\User\Contracts\User as UserContract;
 
 class User extends Authenticatable implements UserContract
 {
-    use HasApiTokens, Notifiable;
+    use HasApiTokens;
+    use Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -44,7 +45,7 @@ class User extends Authenticatable implements UserContract
      */
     public function image_url()
     {
-        if (! $this->image) {
+        if (!$this->image) {
             return;
         }
 
@@ -90,15 +91,54 @@ class User extends Authenticatable implements UserContract
     /**
      * Checks if user has permission to perform certain action.
      *
-     * @param  string  $permission
+     * @param string $permission
+     *
      * @return bool
      */
+    // public function hasPermission($permission)
+    // {
+    //     if ($this->role->permission_type == 'custom' && ! $this->role->permissions) {
+    //         return false;
+    //     }
+
+    //     return in_array($permission, $this->role->permissions);
+    // }
+
     public function hasPermission($permission)
     {
-        if ($this->role->permission_type == 'custom' && ! $this->role->permissions) {
+        if ($this->role->permission_type === 'all') {
+            return true;
+        }
+
+        $perms = $this->role->permissions;
+        if (!$perms) {
             return false;
         }
 
-        return in_array($permission, $this->role->permissions);
+        if (is_string($perms)) {
+            $perms = json_decode($perms, true);
+        }
+
+        // ✅ لو flat array
+        if (is_array($perms) && array_is_list($perms)) {
+            return in_array($permission, $perms, true);
+        }
+
+        if (!is_array($perms)) {
+            return false;
+        }
+
+        // ✅ لو module => actions
+        if (isset($perms[$permission]) && is_array($perms[$permission]) && count($perms[$permission])) {
+            return true;
+        }
+
+        [$module, $action] = array_pad(explode('.', $permission, 2), 2, null);
+
+        if ($module && $action && isset($perms[$module]) && is_array($perms[$module])) {
+            return in_array($action, $perms[$module], true);
+        }
+
+        return false;
     }
 }

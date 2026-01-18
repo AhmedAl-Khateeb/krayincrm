@@ -2,6 +2,7 @@
 
 namespace Webkul\Admin\Http\Controllers\Contact;
 
+use App\Support\VisibleUsers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Event;
@@ -51,7 +52,16 @@ class OrganizationController extends Controller
     {
         Event::dispatch('contacts.organization.create.before');
 
-        $organization = $this->organizationRepository->create(request()->all());
+        $data = request()->all();
+
+        $userIds = VisibleUsers::ids();
+
+        // لو مش admin (يعني view_permission = self مثلا)
+        if (count($userIds) === 1) {
+            $data['user_id'] = $userIds[0];
+        }
+
+        $organization = $this->organizationRepository->create($data);
 
         Event::dispatch('contacts.organization.create.after', $organization);
 
@@ -66,6 +76,11 @@ class OrganizationController extends Controller
     public function edit(int $id): View
     {
         $organization = $this->organizationRepository->findOrFail($id);
+        $userIds = VisibleUsers::ids();
+
+        if (!in_array($organization->user_id, $userIds)) {
+            abort(403);
+        }
 
         return view('admin::contacts.organizations.edit', compact('organization'));
     }
@@ -75,6 +90,14 @@ class OrganizationController extends Controller
      */
     public function update(AttributeForm $request, int $id): RedirectResponse
     {
+        $organization = $this->organizationRepository->findOrFail($id);
+
+        $userIds = VisibleUsers::ids();
+
+        if (!in_array($organization->user_id, $userIds)) {
+            abort(403);
+        }
+
         Event::dispatch('contacts.organization.update.before', $id);
 
         $organization = $this->organizationRepository->update(request()->all(), $id);
@@ -91,6 +114,14 @@ class OrganizationController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
+        $organization = $this->organizationRepository->findOrFail($id);
+
+        $userIds = VisibleUsers::ids();
+
+        if (!in_array($organization->user_id, $userIds)) {
+            abort(403);
+        }
+
         try {
             Event::dispatch('contact.organization.delete.before', $id);
 
@@ -113,9 +144,18 @@ class OrganizationController extends Controller
      */
     public function massDestroy(MassDestroyRequest $massDestroyRequest): JsonResponse
     {
-        $organizations = $this->organizationRepository->findWhereIn('id', $massDestroyRequest->input('indices'));
+        $userIds = VisibleUsers::ids();
+
+        $organizations = $this->organizationRepository->findWhereIn(
+            'id',
+            $massDestroyRequest->input('indices')
+        );
 
         foreach ($organizations as $organization) {
+            if (!in_array($organization->user_id, $userIds)) {
+                continue;
+            }
+
             Event::dispatch('contact.organization.delete.before', $organization);
 
             $this->organizationRepository->delete($organization->id);

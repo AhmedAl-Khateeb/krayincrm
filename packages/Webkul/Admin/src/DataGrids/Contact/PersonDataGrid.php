@@ -2,6 +2,7 @@
 
 namespace Webkul\Admin\DataGrids\Contact;
 
+use App\Support\VisibleUsers;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Webkul\Contact\Repositories\OrganizationRepository;
@@ -14,7 +15,9 @@ class PersonDataGrid extends DataGrid
      *
      * @return void
      */
-    public function __construct(protected OrganizationRepository $organizationRepository) {}
+    public function __construct(protected OrganizationRepository $organizationRepository)
+    {
+    }
 
     /**
      * Prepare query builder.
@@ -32,8 +35,16 @@ class PersonDataGrid extends DataGrid
             )
             ->leftJoin('organizations', 'persons.organization_id', '=', 'organizations.id');
 
-        if ($userIds = bouncer()->getAuthorizedUserIds()) {
+          $userIds = VisibleUsers::ids();
+
+        if (!empty($userIds)) {
             $queryBuilder->whereIn('persons.user_id', $userIds);
+
+            // يضمن إن لو الشخص مربوط بمنظمة، المنظمة كمان تكون للموظف
+            $queryBuilder->where(function ($q) use ($userIds) {
+                $q->whereNull('persons.organization_id')
+                  ->orWhereIn('organizations.user_id', $userIds);
+            });
         }
 
         $this->addFilter('id', 'persons.id');
@@ -49,54 +60,54 @@ class PersonDataGrid extends DataGrid
     public function prepareColumns(): void
     {
         $this->addColumn([
-            'index'      => 'id',
-            'label'      => trans('admin::app.contacts.persons.index.datagrid.id'),
-            'type'       => 'integer',
+            'index' => 'id',
+            'label' => trans('admin::app.contacts.persons.index.datagrid.id'),
+            'type' => 'integer',
             'filterable' => true,
-            'sortable'   => true,
+            'sortable' => true,
             'searchable' => true,
         ]);
 
         $this->addColumn([
-            'index'      => 'person_name',
-            'label'      => trans('admin::app.contacts.persons.index.datagrid.name'),
-            'type'       => 'string',
-            'sortable'   => true,
+            'index' => 'person_name',
+            'label' => trans('admin::app.contacts.persons.index.datagrid.name'),
+            'type' => 'string',
+            'sortable' => true,
             'filterable' => true,
             'searchable' => true,
         ]);
 
         $this->addColumn([
-            'index'      => 'emails',
-            'label'      => trans('admin::app.contacts.persons.index.datagrid.emails'),
-            'type'       => 'string',
-            'sortable'   => false,
+            'index' => 'emails',
+            'label' => trans('admin::app.contacts.persons.index.datagrid.emails'),
+            'type' => 'string',
+            'sortable' => false,
             'filterable' => true,
             'searchable' => true,
-            'closure'    => fn ($row) => collect(json_decode($row->emails, true) ?? [])->pluck('value')->join(', '),
+            'closure' => fn ($row) => collect(json_decode($row->emails, true) ?? [])->pluck('value')->join(', '),
         ]);
 
         $this->addColumn([
-            'index'      => 'contact_numbers',
-            'label'      => trans('admin::app.contacts.persons.index.datagrid.contact-numbers'),
-            'type'       => 'string',
-            'sortable'   => true,
+            'index' => 'contact_numbers',
+            'label' => trans('admin::app.contacts.persons.index.datagrid.contact-numbers'),
+            'type' => 'string',
+            'sortable' => true,
             'filterable' => true,
             'searchable' => true,
-            'closure'    => fn ($row) => collect(json_decode($row->contact_numbers, true) ?? [])->pluck('value')->join(', '),
+            'closure' => fn ($row) => collect(json_decode($row->contact_numbers, true) ?? [])->pluck('value')->join(', '),
         ]);
 
         $this->addColumn([
-            'index'              => 'organization',
-            'label'              => trans('admin::app.contacts.persons.index.datagrid.organization-name'),
-            'type'               => 'string',
-            'searchable'         => true,
-            'filterable'         => true,
-            'sortable'           => true,
-            'filterable_type'    => 'searchable_dropdown',
+            'index' => 'organization',
+            'label' => trans('admin::app.contacts.persons.index.datagrid.organization-name'),
+            'type' => 'string',
+            'searchable' => true,
+            'filterable' => true,
+            'sortable' => true,
+            'filterable_type' => 'searchable_dropdown',
             'filterable_options' => [
                 'repository' => OrganizationRepository::class,
-                'column'     => [
+                'column' => [
                     'label' => 'name',
                     'value' => 'name',
                 ],
@@ -111,10 +122,10 @@ class PersonDataGrid extends DataGrid
     {
         if (bouncer()->hasPermission('contacts.persons.view')) {
             $this->addAction([
-                'icon'   => 'icon-eye',
-                'title'  => trans('admin::app.contacts.persons.index.datagrid.view'),
+                'icon' => 'icon-eye',
+                'title' => trans('admin::app.contacts.persons.index.datagrid.view'),
                 'method' => 'GET',
-                'url'    => function ($row) {
+                'url' => function ($row) {
                     return route('admin.contacts.persons.view', $row->id);
                 },
             ]);
@@ -122,10 +133,10 @@ class PersonDataGrid extends DataGrid
 
         if (bouncer()->hasPermission('contacts.persons.edit')) {
             $this->addAction([
-                'icon'   => 'icon-edit',
-                'title'  => trans('admin::app.contacts.persons.index.datagrid.edit'),
+                'icon' => 'icon-edit',
+                'title' => trans('admin::app.contacts.persons.index.datagrid.edit'),
                 'method' => 'GET',
-                'url'    => function ($row) {
+                'url' => function ($row) {
                     return route('admin.contacts.persons.edit', $row->id);
                 },
             ]);
@@ -133,10 +144,10 @@ class PersonDataGrid extends DataGrid
 
         if (bouncer()->hasPermission('contacts.persons.delete')) {
             $this->addAction([
-                'icon'   => 'icon-delete',
-                'title'  => trans('admin::app.contacts.persons.index.datagrid.delete'),
+                'icon' => 'icon-delete',
+                'title' => trans('admin::app.contacts.persons.index.datagrid.delete'),
                 'method' => 'DELETE',
-                'url'    => function ($row) {
+                'url' => function ($row) {
                     return route('admin.contacts.persons.delete', $row->id);
                 },
             ]);
@@ -150,10 +161,10 @@ class PersonDataGrid extends DataGrid
     {
         if (bouncer()->hasPermission('contacts.persons.delete')) {
             $this->addMassAction([
-                'icon'   => 'icon-delete',
-                'title'  => trans('admin::app.contacts.persons.index.datagrid.delete'),
+                'icon' => 'icon-delete',
+                'title' => trans('admin::app.contacts.persons.index.datagrid.delete'),
                 'method' => 'POST',
-                'url'    => route('admin.contacts.persons.mass_delete'),
+                'url' => route('admin.contacts.persons.mass_delete'),
             ]);
         }
     }

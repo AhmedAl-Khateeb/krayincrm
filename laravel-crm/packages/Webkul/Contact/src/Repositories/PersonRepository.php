@@ -40,8 +40,6 @@ class PersonRepository extends Repository
 
     /**
      * Specify model class name.
-     *
-     * @return mixed
      */
     public function model()
     {
@@ -51,13 +49,26 @@ class PersonRepository extends Repository
     /**
      * Create.
      *
-     * @return \Webkul\Contact\Contracts\Person
+     * @return Person
      */
     public function create(array $data)
     {
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
+
+        // ✅ لو مش admin افرض user_id = نفسه
+        if (!$isAdmin) {
+            $data['user_id'] = $me->id;
+        } else {
+            // admin لو مبعتش user_id خليها نفسه
+            if (!isset($data['user_id']) || empty($data['user_id'])) {
+                $data['user_id'] = $me->id;
+            }
+        }
+
         $data = $this->sanitizeRequestedPersonData($data);
 
-        if (! empty($data['organization_name'])) {
+        if (!empty($data['organization_name'])) {
             $organization = $this->fetchOrCreateOrganizationByName($data['organization_name']);
 
             $data['organization_id'] = $organization->id;
@@ -79,15 +90,27 @@ class PersonRepository extends Repository
     /**
      * Update.
      *
-     * @return \Webkul\Contact\Contracts\Person
+     * @return Person
      */
     public function update(array $data, $id, $attributes = [])
     {
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
+
+        // ✅ لو مش admin افرض user_id = نفسه
+        if (!$isAdmin) {
+            $data['user_id'] = $me->id;
+        } else {
+            if (!isset($data['user_id']) || empty($data['user_id'])) {
+                $data['user_id'] = $me->id;
+            }
+        }
+
         $data = $this->sanitizeRequestedPersonData($data);
 
         $data['user_id'] = empty($data['user_id']) ? null : $data['user_id'];
 
-        if (! empty($data['organization_name'])) {
+        if (!empty($data['organization_name'])) {
             $organization = $this->fetchOrCreateOrganizationByName($data['organization_name']);
 
             $data['organization_id'] = $organization->id;
@@ -97,10 +120,10 @@ class PersonRepository extends Repository
 
         $person = parent::update($data, $id);
 
-        /**
+        /*
          * If attributes are provided then only save the provided attributes and return.
          */
-        if (! empty($attributes)) {
+        if (!empty($attributes)) {
             $conditions = ['entity_type' => $data['entity_type']];
 
             if (isset($data['quick_add'])) {
@@ -149,7 +172,7 @@ class PersonRepository extends Repository
 
         return $organization ?: $this->organizationRepository->create([
             'entity_type' => 'organizations',
-            'name'        => $organizationName,
+            'name' => $organizationName,
         ]);
     }
 
@@ -174,7 +197,7 @@ class PersonRepository extends Repository
         $data['unique_id'] = implode('|', $uniqueIdParts);
 
         if (isset($data['contact_numbers'])) {
-            $data['contact_numbers'] = collect($data['contact_numbers'])->filter(fn ($number) => ! is_null($number['value']))->toArray();
+            $data['contact_numbers'] = collect($data['contact_numbers'])->filter(fn ($number) => !is_null($number['value']))->toArray();
 
             $data['unique_id'] .= '|'.$data['contact_numbers'][0]['value'];
         }

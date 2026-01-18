@@ -1,70 +1,75 @@
-
 <x-admin::layouts>
-    <!-- Page Title -->
     <x-slot:title>
         @lang('admin::app.contacts.persons.edit.title')
     </x-slot>
 
     {!! view_render_event('admin.persons.edit.form.before') !!}
 
-    <x-admin::form
-        :action="route('admin.contacts.persons.update', $person->id)"
-        method="PUT"
-        enctype="multipart/form-data"
-    >
+    <x-admin::form :action="route('admin.contacts.persons.update', $person->id)" method="PUT" enctype="multipart/form-data">
         <div class="flex flex-col gap-4">
-            <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+
+            <div
+                class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
                 <div class="flex flex-col gap-2">
-                    {!! view_render_event('admin.persons.edit.breadcrumbs.before') !!}
-
-                    <x-admin::breadcrumbs
-                        name="contacts.persons.edit"
-                        :entity="$person"
-                    />
-
-                    {!! view_render_event('admin.persons.edit.breadcrumbs.after') !!}
-
+                    <x-admin::breadcrumbs name="contacts.persons.edit" :entity="$person" />
                     <div class="text-xl font-bold dark:text-white">
                         @lang('admin::app.contacts.persons.edit.title')
                     </div>
                 </div>
 
-                <div class="flex items-center gap-x-2.5">
-                    <!--  Save button for Person -->
-                    <div class="flex items-center gap-x-2.5">
-                        {!! view_render_event('admin.persons.edit.save_button.before') !!}
-
-                        <button
-                            type="submit"
-                            class="primary-button"
-                        >
-                            @lang('admin::app.contacts.persons.edit.save-btn')
-                        </button>
-
-                        {!! view_render_event('admin.persons.edit.save_button.after') !!}
-                    </div>
-                </div>
+                <button type="submit" class="primary-button">
+                    @lang('admin::app.contacts.persons.edit.save-btn')
+                </button>
             </div>
 
             <div class="box-shadow rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
                 {!! view_render_event('admin.contacts.persons.edit.form_controls.before') !!}
 
-                <x-admin::attributes
-                    :custom-attributes="app('Webkul\Attribute\Repositories\AttributeRepository')->findWhere([
-                        ['code', 'NOTIN', ['organization_id']],
-                        'entity_type' => 'persons',
-                    ])"
-                    :custom-validations="[
-                        'name' => [
-                            'min:2',
-                            'max:100',
-                        ],
-                        'job_title' => [
-                            'max:100',
-                        ],
-                    ]"
-                    :entity="$person"
-                />
+                @php
+                    $me = auth()->guard('admin')->user();
+                    $isAdmin = optional($me->role)->permission_type === 'all';
+
+                    $users = $isAdmin
+                        ? \Webkul\User\Models\User::query()
+                            ->orderBy('name')
+                            ->get(['id', 'name'])
+                        : collect();
+                @endphp
+
+                {{-- ✅ Sales Owner --}}
+                @if ($isAdmin)
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium mb-1">Sales Owner</label>
+                        <select name="user_id"
+                            class="w-full rounded-lg border px-3 py-2 bg-white dark:bg-gray-900 dark:text-white"
+                            required>
+                            <option value="">-- Choose User --</option>
+                            @foreach ($users as $u)
+                                <option value="{{ $u->id }}" @selected($person->user_id == $u->id)>
+                                    {{ $u->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                @else
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium mb-1">Sales Owner</label>
+                        <input type="text" value="{{ $me->name }}"
+                            class="w-full rounded-lg border px-3 py-2 bg-gray-50 dark:bg-gray-800 dark:text-white"
+                            disabled />
+                    </div>
+
+                    <input type="hidden" name="user_id" value="{{ $me->id }}">
+                @endif
+
+                {{-- ✅ استبعد user_id عشان الـ Lookup ما يظهرش --}}
+                <x-admin::attributes :custom-attributes="app('Webkul\Attribute\Repositories\AttributeRepository')->findWhere([
+                    ['code', 'NOTIN', ['organization_id', 'user_id']],
+                    'entity_type' => 'persons',
+                ])" :custom-validations="[
+                    'name' => ['min:2', 'max:100'],
+                    'job_title' => ['max:100'],
+                ]" :entity="$person" />
 
                 <v-organization></v-organization>
 
@@ -76,10 +81,7 @@
     {!! view_render_event('admin.persons.edit.form.after') !!}
 
     @pushOnce('scripts')
-        <script
-            type="text/x-template"
-            id="v-organization-template"
-        >
+        <script type="text/x-template" id="v-organization-template">
             <div>
                 <x-admin::attributes
                     :custom-attributes="app('Webkul\Attribute\Repositories\AttributeRepository')->findWhere([
@@ -102,13 +104,11 @@
         <script type="module">
             app.component('v-organization', {
                 template: '#v-organization-template',
-
                 data() {
                     return {
-                        organizationName: null,
+                        organizationName: null
                     };
                 },
-
                 methods: {
                     handleLookupAdded(event) {
                         this.organizationName = event?.name || null;

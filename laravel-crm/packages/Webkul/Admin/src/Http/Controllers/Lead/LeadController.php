@@ -61,10 +61,10 @@ class LeadController extends Controller
      */
     public function index()
     {
-        //  علشان لما يعمل اكسبورت 
+        //  علشان لما يعمل اكسبورت
         if (request()->has('export')) {
             return datagrid(LeadDataGrid::class)->export();
-        } //
+        }
 
         if (request()->ajax()) {
             return datagrid(LeadDataGrid::class)->process();
@@ -111,8 +111,11 @@ class LeadController extends Controller
                     'lead_pipeline_stage_id' => $stage->id,
                 ]);
 
-            if ($userIds = bouncer()->getAuthorizedUserIds()) {
-                $query->whereIn('leads.user_id', $userIds);
+            $me = auth()->guard('admin')->user();
+            $isAdmin = optional($me->role)->permission_type === 'all';
+
+            if (!$isAdmin) {
+                $query->where('leads.user_id', $me->id);
             }
 
             $stage->lead_value = (clone $query)->sum('lead_value');
@@ -163,6 +166,13 @@ class LeadController extends Controller
         Event::dispatch('lead.create.before');
 
         $data = request()->all();
+
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
+
+        if (!$isAdmin) {
+            $data['user_id'] = $me->id;
+        }
 
         $data['status'] = 1;
 
@@ -225,13 +235,11 @@ class LeadController extends Controller
     {
         $lead = $this->leadRepository->findOrFail($id);
 
-        $userIds = bouncer()->getAuthorizedUserIds();
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
 
-        if (
-            $userIds
-            && !in_array($lead->user_id, $userIds)
-        ) {
-            return redirect()->route('admin.leads.index');
+        if (!$isAdmin && $lead->user_id != $me->id) {
+            abort(403);
         }
 
         return view('admin::leads.view', compact('lead'));
@@ -245,6 +253,13 @@ class LeadController extends Controller
         Event::dispatch('lead.update.before', $id);
 
         $data = $request->all();
+
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
+
+        if (!$isAdmin) {
+            $data['user_id'] = $me->id; // يمنع تغيير المالك
+        }
 
         if (isset($data['lead_pipeline_stage_id'])) {
             $stage = $this->stageRepository->findOrFail($data['lead_pipeline_stage_id']);
@@ -361,7 +376,14 @@ class LeadController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        $this->leadRepository->findOrFail($id);
+        $lead = $this->leadRepository->findOrFail($id);
+
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
+
+        if (!$isAdmin && $lead->user_id != $me->id) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
 
         try {
             Event::dispatch('lead.delete.before', $id);
@@ -385,17 +407,26 @@ class LeadController extends Controller
      */
     public function massUpdate(MassUpdateRequest $massUpdateRequest): JsonResponse
     {
-        $leads = $this->leadRepository->findWhereIn('id', $massUpdateRequest->input('indices'));
+        $leads = $this->leadRepository->findWhereIn('id', $massUpdateRequest->input('indices', []));
+
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
 
         try {
             foreach ($leads as $lead) {
+                // غير الادمن: يحدث الليدز بتاعته بس
+                if (!$isAdmin && $lead->user_id != $me->id) {
+                    continue;
+                }
+
                 Event::dispatch('lead.update.before', $lead->id);
 
-                $lead = $this->leadRepository->find($lead->id);
+                $leadModel = $this->leadRepository->find($lead->id);
+                $leadModel?->update([
+                    'lead_pipeline_stage_id' => $massUpdateRequest->input('value'),
+                ]);
 
-                $lead?->update(['lead_pipeline_stage_id' => $massUpdateRequest->input('value')]);
-
-                Event::dispatch('lead.update.before', $lead->id);
+                Event::dispatch('lead.update.after', $lead->id);
             }
 
             return response()->json([
@@ -413,10 +444,18 @@ class LeadController extends Controller
      */
     public function massDestroy(MassDestroyRequest $massDestroyRequest): JsonResponse
     {
-        $leads = $this->leadRepository->findWhereIn('id', $massDestroyRequest->input('indices'));
+        $leads = $this->leadRepository->findWhereIn('id', $massDestroyRequest->input('indices', []));
+
+        $me = auth()->guard('admin')->user();
+        $isAdmin = optional($me->role)->permission_type === 'all';
 
         try {
             foreach ($leads as $lead) {
+                // غير الادمن: يمسح الليدز بتاعته بس
+                if (!$isAdmin && $lead->user_id != $me->id) {
+                    continue;
+                }
+
                 Event::dispatch('lead.delete.before', $lead->id);
 
                 $this->leadRepository->delete($lead->id);
@@ -430,7 +469,7 @@ class LeadController extends Controller
         } catch (\Exception $exception) {
             return response()->json([
                 'message' => trans('admin::app.leads.destroy-failed'),
-            ]);
+            ], 400);
         }
     }
 
