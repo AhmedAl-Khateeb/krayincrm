@@ -6,7 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Event;
 use Illuminate\View\View;
-use Webkul\Admin\DataGrids\Contact\OrganizationDataGrid;
+use Webkul\Admin\DataGrids\Contact\FollowUpPersonDataGrid;
 use Webkul\Admin\Http\Controllers\Controller;
 use Webkul\Admin\Http\Requests\AttributeForm;
 use Webkul\Admin\Http\Requests\MassDestroyRequest;
@@ -30,7 +30,9 @@ class OrganizationController extends Controller
     public function index(): View|JsonResponse
     {
         if (request()->ajax()) {
-            return datagrid(OrganizationDataGrid::class)->process();
+            request()->merge(['entity_type' => 'persons']);
+
+            return datagrid(FollowUpPersonDataGrid::class)->process();
         }
 
         return view('admin::contacts.organizations.index');
@@ -65,7 +67,7 @@ class OrganizationController extends Controller
      */
     public function edit(int $id): View
     {
-         $entity = $this->organizationRepository
+        $entity = $this->organizationRepository
         ->with('attributeValues.attribute')
         ->findOrFail($id);
         $organization = $entity;
