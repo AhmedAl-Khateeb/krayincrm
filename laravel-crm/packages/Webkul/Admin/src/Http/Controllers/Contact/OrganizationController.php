@@ -85,6 +85,33 @@ class OrganizationController extends Controller
         return view('admin::contacts.organizations.edit', compact('organization'));
     }
 
+//        public function edit(int $id): View
+// {
+//     $entity = $this->organizationRepository
+//         ->findOrFail($id);
+
+//     $entity->loadMissing([
+//         'attributeValues' => function ($q) {
+//             $q->with('attribute.options');
+//         },
+//         'user'
+//     ]);
+
+//     $customAttributes = app('Webkul\Attribute\Repositories\AttributeRepository')
+//         ->scopeQuery(fn ($q) =>
+//             $q->where('entity_type', 'organizations')
+//               ->where('code', '!=', 'address')
+//         )
+//         ->with('options')
+//         ->get();
+
+//     return view('admin::contacts.organizations.edit', [
+//         'entity'            => $entity,
+//         'organization'      => $entity,
+//         'customAttributes'  => $customAttributes,
+//     ]);
+// }
+
     /**
      * Update the specified resource in storage.
      */

@@ -5,7 +5,8 @@
     </x-slot>
 
     <div class="flex flex-col gap-4">
-        <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+        <div
+            class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
             <div class="flex flex-col gap-2">
                 {!! view_render_event('admin.organizations.index.breadcrumbs.before') !!}
 
@@ -13,7 +14,7 @@
                 <x-admin::breadcrumbs name="contacts.organizations" />
 
                 {!! view_render_event('admin.organizations.index.breadcrumbs.before') !!}
-                
+
                 <div class="text-xl font-bold dark:text-gray-300">
                     @lang('admin::app.contacts.organizations.index.title')
                 </div>
@@ -25,10 +26,7 @@
 
                     @if (bouncer()->hasPermission('contacts.organizations'))
                         <!-- Create button for person -->
-                        <a
-                            href="{{ route('admin.contacts.organizations.create') }}"
-                            class="primary-button"
-                        >
+                        <a href="{{ route('admin.contacts.organizations.create') }}" class="primary-button">
                             @lang('admin::app.contacts.organizations.index.create-btn')
                         </a>
                     @endif
@@ -40,7 +38,7 @@
 
         {!! view_render_event('admin.organizations.datagrid.index.before') !!}
 
-      {{-- <x-admin::datagrid :src="route('admin.contacts.organizations.index')" :isMultiRow="true">
+        {{-- <x-admin::datagrid :src="route('admin.contacts.organizations.index')" :isMultiRow="true">
     <x-admin::shimmer.datagrid :is-multi-row="true"/>
 </x-admin::datagrid> --}}
 
@@ -48,12 +46,12 @@
         {!! view_render_event('admin.organizations.datagrid.index.after') !!}
     </div>
 
-<v-followup-persons>
-    <x-admin::shimmer.datagrid :is-multi-row="true"/>
-</v-followup-persons>
+    <v-followup-persons>
+        <x-admin::shimmer.datagrid :is-multi-row="true" />
+    </v-followup-persons>
 
-@pushOnce('scripts')
-<script type="text/x-template" id="v-followup-persons-template">
+    @pushOnce('scripts')
+        <script type="text/x-template" id="v-followup-persons-template">
     <x-admin::datagrid
         src="{{ route('admin.contacts.organizations.index') }}"
         :isMultiRow="true"
@@ -69,7 +67,10 @@
 
             <template v-else>
                 {{-- نفس header بتاع persons --}}
-                <div class="row grid grid-cols-[.1fr_.2fr_.2fr_.2fr_.2fr_.2fr] items-center border-b px-4 py-2.5 dark:border-gray-800 max-lg:hidden">
+<div
+  class="row grid items-center border-b px-4 py-2.5 dark:border-gray-800 max-lg:hidden"
+  style="grid-template-columns: .1fr .22fr .22fr .22fr .18fr .22fr .12fr;"
+>
 
                     {{-- checkbox + ID --}}
                     <div class="flex items-center gap-2.5">
@@ -114,6 +115,10 @@
                     </p>
 
                     <p class="text-gray-600 dark:text-gray-300">
+                       @{{ available.columns.find(c => c.index === 'call_status')?.label }}
+                    </p>
+
+                    <p class="text-gray-600 dark:text-gray-300">
                         @{{ available.columns.find(c => c.index === 'organization')?.label }}
                     </p>
 
@@ -131,10 +136,12 @@
             </template>
 
             <template v-else>
-                <div
-                    class="row grid grid-cols-[.1fr_.2fr_.2fr_.2fr_.2fr_.2fr] border-b px-4 py-2.5 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-950 max-lg:hidden"
-                    v-for="record in available.records"
-                >
+               <div
+  class="row grid grid-rows-1 border-b px-4 py-2.5 transition-all hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-950 max-lg:hidden"
+  style="grid-template-columns: .1fr .22fr .22fr .22fr .18fr .22fr .12fr;"
+  v-for="record in available.records"
+>
+
                     {{-- checkbox + ID --}}
                     <div class="flex items-center gap-2.5">
                         <input
@@ -162,6 +169,7 @@
 
                     {{-- هنا هيظهر رقم + علامة الاتصال اللي عملتها --}}
                     <p class="dark:text-gray-300" v-html="record.contact_numbers"></p>
+                    <p class="dark:text-gray-300" v-html="record.call_status"></p>
 
                     <p class="dark:text-gray-300">@{{ record.organization }}</p>
 
@@ -181,14 +189,15 @@
     </x-admin::datagrid>
 </script>
 
-<script type="module">
-    app.component('v-followup-persons', { template: '#v-followup-persons-template' });
-</script>
-@endPushOnce
+        <script type="module">
+            app.component('v-followup-persons', {
+                template: '#v-followup-persons-template'
+            });
+        </script>
+    @endPushOnce
 
 
 
 
 
 </x-admin::layouts>
-

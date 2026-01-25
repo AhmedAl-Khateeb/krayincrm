@@ -15,7 +15,9 @@ class DataGridExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMap
      *
      * @return void
      */
-    public function __construct(protected DataGrid $datagrid) {}
+    public function __construct(protected DataGrid $datagrid)
+    {
+    }
 
     /**
      * Query.
@@ -66,13 +68,25 @@ class DataGridExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMap
     {
         $items = json_decode($json, true);
 
-        if (
-            json_last_error() === JSON_ERROR_NONE
-            && is_array($items)
-        ) {
-            return collect($items)->map(fn ($item) => "{$item['value']} ({$item['label']})")->implode(', ');
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($items)) {
+            return $json;
         }
 
-        return $json;
+        return collect($items)->map(function ($item) {
+            // لو العنصر string
+            if (is_string($item)) {
+                return $item;
+            }
+
+            // لو العنصر array
+            if (is_array($item)) {
+                $value = $item['value'] ?? '';
+                $label = $item['label'] ?? null;
+
+                return $label ? "{$value} ({$label})" : $value;
+            }
+
+            return '';
+        })->filter()->implode(', ');
     }
 }

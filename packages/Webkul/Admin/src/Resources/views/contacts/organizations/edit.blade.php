@@ -6,7 +6,7 @@
 
     {!! view_render_event('admin.organizations.edit.form.before') !!}
     
-    <x-admin::form :action="route('admin.contacts.organizations.update',  $entity->id)" method="PUT">
+    <x-admin::form :action="route('admin.contacts.organizations.update',  $organization->id)" method="PUT">
         <input type="hidden" name="entity_type" value="organizations">
         <div class="flex flex-col gap-4">
             <div
@@ -42,19 +42,18 @@
                 {!! view_render_event('admin.contacts.organizations.edit.form_controls.before') !!}
 
     <x-admin::attributes 
-    :custom-attributes="app('Webkul\Attribute\Repositories\AttributeRepository')
-        ->scopeQuery(fn($q) => $q->where('entity_type', 'organizations')
-        ->where(function($q){
-            $q->where('entity_type', 'organizations')
-->where('code', '!=', 'address');
-        }))->get()" 
+   :custom-attributes="app('Webkul\Attribute\Repositories\AttributeRepository')
+    ->scopeQuery(fn($q) => $q->where('entity_type', 'organizations')
+    ->where('code', '!=', 'address'))
+    ->with('options') 
+    ->get()"
         
     :custom-validations="[ 
         'name' => ['max:100'],
         'postcode' => ['postcode'],
         'next_call_at' => ['required', 'date', 'after:today'],
     ]" 
-    :entity="$entity" 
+    :entity="$organization" 
 />
 
 

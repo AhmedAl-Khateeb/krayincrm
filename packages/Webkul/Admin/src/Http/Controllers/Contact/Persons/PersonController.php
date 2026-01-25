@@ -2,7 +2,7 @@
 
 namespace Webkul\Admin\Http\Controllers\Contact\Persons;
 
-use Exception;
+use App\Support\VisibleUsers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -55,13 +55,37 @@ class PersonController extends Controller
     {
         Event::dispatch('contacts.person.create.before');
 
-        $person = $this->personRepository->create($request->all());
+        $data = $request->all();
+
+        $me = auth()->guard('admin')->user();
+
+        $isAdmin = optional($me->role)->permission_type === 'all';
+        if (!$isAdmin) {
+            $data['user_id'] = $me->id;
+        } else {
+            if (empty($data['user_id'])) {
+                $data['user_id'] = $me->id;
+            }
+        }
+
+        $userIds = VisibleUsers::ids();
+        $orgId = $data['organization_id'] ?? null;
+
+        if ($orgId) {
+            $org = $this->organizationRepository->find($orgId);
+
+            if (!$org || !in_array($org->user_id, $userIds)) {
+                abort(403);
+            }
+        }
+
+        $person = $this->personRepository->create($data);
 
         Event::dispatch('contacts.person.create.after', $person);
 
         if (request()->ajax()) {
             return response()->json([
-                'data'    => $person,
+                'data' => $person,
                 'message' => trans('admin::app.contacts.persons.index.create-success'),
             ]);
         }
@@ -77,6 +101,11 @@ class PersonController extends Controller
     public function show(int $id): View
     {
         $person = $this->personRepository->findOrFail($id);
+        $userIds = VisibleUsers::ids();
+
+        if (!in_array($person->user_id, $userIds)) {
+            abort(403);
+        }
 
         return view('admin::contacts.persons.view', compact('person'));
     }
@@ -88,7 +117,23 @@ class PersonController extends Controller
     {
         $person = $this->personRepository->findOrFail($id);
 
-        return view('admin::contacts.persons.edit', compact('person'));
+        $userIds = (array) (VisibleUsers::ids() ?? []);
+        if (!empty($person->user_id) && !in_array($person->user_id, $userIds)) {
+            abort(403);
+        }
+
+        // ✅ حمّل attribute_values بس… من غير options
+        $person->load([
+            'organization',
+            'attributeValues' => fn ($q) => $q->with('attribute.options'),
+        ]);
+
+        $attributes = app('Webkul\Attribute\Repositories\AttributeRepository')->findWhere([
+            ['code', 'NOTIN', ['organization_id']],
+            'entity_type' => 'persons',
+        ]);
+
+        return view('admin::contacts.persons.edit', compact('person', 'attributes'));
     }
 
     /**
@@ -98,13 +143,42 @@ class PersonController extends Controller
     {
         Event::dispatch('contacts.person.update.before', $id);
 
-        $person = $this->personRepository->update($request->all(), $id);
+        // ✅ هات الشخص الأول
+        $person = $this->personRepository->findOrFail($id);
+
+        // ✅ Permission check (نفس بتاع organizations)
+        $userIds = VisibleUsers::ids();
+
+        if (!empty($person->user_id) && !in_array($person->user_id, $userIds)) {
+            abort(403);
+        }
+
+        $data = $request->all();
+
+        // ✅ لو اليوزر مش متحدد خالص اربطه بالمستخدم الحالي
+        if (empty($data['user_id'])) {
+            $data['user_id'] = auth()->id(); // ✅ بدون guard
+        }
+
+        // ✅ امنع تغيير organization لواحدة مش تبع نفس اليوزر
+        $orgId = $data['organization_id'] ?? null;
+
+        if ($orgId) {
+            $org = $this->organizationRepository->find($orgId);
+
+            if (!$org || !in_array($org->user_id, $userIds)) {
+                abort(403);
+            }
+        }
+
+        // ✅ نفّذ التحديث بالـ $data (مش request()->all())
+        $person = $this->personRepository->update($data, $id);
 
         Event::dispatch('contacts.person.update.after', $person);
 
         if (request()->ajax()) {
             return response()->json([
-                'data'    => $person,
+                'data' => $person,
                 'message' => trans('admin::app.contacts.persons.index.update-success'),
             ], 200);
         }
@@ -158,8 +232,7 @@ class PersonController extends Controller
             return response()->json([
                 'message' => trans('admin::app.contacts.persons.index.delete-success'),
             ], 200);
-
-        } catch (Exception $exception) {
+        } catch (\Exception $exception) {
             return response()->json([
                 'message' => trans('admin::app.contacts.persons.index.delete-failed'),
             ], 400);
@@ -183,7 +256,7 @@ class PersonController extends Controller
                     $person->leads
                     && $person->leads->count() > 0
                 ) {
-                    $blockedCount++;
+                    ++$blockedCount;
 
                     continue;
                 }
@@ -194,7 +267,7 @@ class PersonController extends Controller
 
                 Event::dispatch('contact.person.delete.after', $person);
 
-                $deletedCount++;
+                ++$deletedCount;
             }
 
             $statusCode = 200;
@@ -226,7 +299,7 @@ class PersonController extends Controller
             }
 
             return response()->json(['message' => $message], $statusCode);
-        } catch (Exception $exception) {
+        } catch (\Exception $exception) {
             return response()->json([
                 'message' => trans('admin::app.contacts.persons.index.delete-failed'),
             ], 400);

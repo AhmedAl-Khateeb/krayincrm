@@ -52,7 +52,7 @@ class OrganizationDataGrid extends DataGrid
 
         $userIds = VisibleUsers::ids();
 
-        if ($userIds) {
+        if ($userIds !== null) {
             $queryBuilder->whereIn('organizations.user_id', $userIds);
         }
 
@@ -238,5 +238,3 @@ class OrganizationDataGrid extends DataGrid
         }
     }
 }
-
-

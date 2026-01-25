@@ -2,6 +2,7 @@
 
 namespace Webkul\Admin\Http\Controllers\Contact;
 
+use App\Support\VisibleUsers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Event;
@@ -65,15 +66,19 @@ class OrganizationController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(int $id): View
+ public function edit(int $id): View
     {
-        $entity = $this->organizationRepository
-        ->with('attributeValues.attribute')
-        ->findOrFail($id);
-        $organization = $entity;
+        $organization = $this->organizationRepository->findOrFail($id);
+        $userIds = VisibleUsers::ids();
 
-        return view('admin::contacts.organizations.edit', compact('entity', 'organization'));
+        if (!in_array($organization->user_id, $userIds)) {
+            abort(403);
+        }
+
+        return view('admin::contacts.organizations.edit', compact('organization'));
     }
+
+
 
     /**
      * Update the specified resource in storage.
@@ -82,7 +87,22 @@ class OrganizationController extends Controller
     {
         Event::dispatch('contacts.organization.update.before', $id);
 
-        $organization = $this->organizationRepository->update($request->all(), $id);
+        $organization = $this->organizationRepository->findOrFail($id);
+
+        // ✅ Permission check
+        $userIds = VisibleUsers::ids();
+        if (!empty($organization->user_id) && !in_array($organization->user_id, $userIds)) {
+            abort(403);
+        }
+
+        $data = $request->all();
+
+        // ✅ لو اليوزر مش متحدد خالص، اربطه بالمعدل الحالي
+        if (empty($data['user_id'])) {
+            $data['user_id'] = auth()->id();
+        }
+
+        $organization = $this->organizationRepository->update($data, $id);
 
         Event::dispatch('contacts.organization.update.after', $organization);
 

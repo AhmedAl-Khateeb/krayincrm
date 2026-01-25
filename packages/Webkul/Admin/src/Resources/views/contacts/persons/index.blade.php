@@ -4,7 +4,8 @@
     </x-slot>
 
     <div class="flex flex-col gap-4">
-        <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+        <div
+            class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
             <div class="flex flex-col gap-2">
                 <x-admin::breadcrumbs name="contacts.persons" />
 
@@ -22,10 +23,7 @@
                     {!! view_render_event('admin.persons.index.create_button.before') !!}
 
                     @if (bouncer()->hasPermission('contacts.persons'))
-                        <a
-                            href="{{ route('admin.contacts.persons.create') }}"
-                            class="primary-button"
-                        >
+                        <a href="{{ route('admin.contacts.persons.create') }}" class="primary-button">
                             @lang('admin::app.contacts.persons.index.create-btn')
                         </a>
                     @endif
@@ -38,18 +36,14 @@
         {!! view_render_event('admin.persons.index.datagrid.before') !!}
 
         <v-persons>
-            <!-- Datagrid shimmer -->
-            <x-admin::shimmer.datagrid :is-multi-row="true"/>
+            <x-admin::shimmer.datagrid :is-multi-row="true" />
         </v-persons>
 
         {!! view_render_event('admin.persons.index.datagrid.after') !!}
     </div>
 
     @pushOnce('scripts')
-        <script
-            type="text/x-template"
-            id="v-persons-template"
-        >
+        <script type="text/x-template" id="v-persons-template">
             <x-admin::datagrid
                 src="{{ route('admin.contacts.persons.index') }}"
                 :isMultiRow="true"
@@ -68,10 +62,15 @@
                     </template>
 
                     <template v-else>
-                        <div class="row grid grid-cols-[.1fr_.2fr_.2fr_.2fr_.2fr_.2fr] grid-rows-1 items-center border-b px-4 py-2.5 dark:border-gray-800 max-lg:hidden">
+                        <!-- ✅ Desktop Header -->
+                        <div
+                            class="row grid items-center border-b px-4 py-2.5 dark:border-gray-800 max-lg:hidden"
+                            style="grid-template-columns: .1fr .22fr .22fr .24fr .18fr .22fr .10fr;"
+                        >
+                            <!-- Columns -->
                             <div
                                 class="flex select-none items-center gap-2.5"
-                                v-for="(columnGroup, index) in [['id'], ['person_name'], ['emails'], ['contact_numbers'], ['organization']]"
+                                v-for="(columnGroup, index) in [['id'], ['person_name'], ['emails'], ['contact_numbers'], ['call_status'], ['organization']]"
                             >
                                 <label
                                     class="flex w-max cursor-pointer select-none items-center gap-1"
@@ -94,8 +93,7 @@
                                                 applied.massActions.meta.mode === 'partial' ? 'peer-checked:icon-checkbox-multiple peer-checked:text-brandColor' : ''
                                             ),
                                         ]"
-                                    >
-                                    </span>
+                                    ></span>
                                 </label>
 
                                 <p class="text-gray-600 dark:text-gray-300">
@@ -108,7 +106,9 @@
                                                     'cursor-pointer hover:text-gray-800 dark:hover:text-white': available.columns.find(columnTemp => columnTemp.index === column)?.sortable,
                                                 }"
                                                 @click="
-                                                    available.columns.find(columnTemp => columnTemp.index === column)?.sortable ? sort(available.columns.find(columnTemp => columnTemp.index === column)): {}
+                                                    available.columns.find(columnTemp => columnTemp.index === column)?.sortable
+                                                        ? sort(available.columns.find(columnTemp => columnTemp.index === column))
+                                                        : {}
                                                 "
                                             >
                                                 @{{ available.columns.find(columnTemp => columnTemp.index === column)?.label }}
@@ -123,17 +123,18 @@
                                     ></i>
                                 </p>
                             </div>
+
+                            <!-- ✅ Actions Header (آخر عمود) -->
+                            <div class="text-gray-600 dark:text-gray-300 text-right font-medium">
+                                Actions
+                            </div>
                         </div>
 
                         <!-- Mobile Sort/Filter Header -->
                         <div class="hidden border-b bg-gray-50 px-4 py-3 text-black dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 max-lg:block">
                             <div class="flex items-center justify-between">
-                                <!-- Mass Actions for Mobile -->
                                 <div v-if="available.massActions.length">
-                                    <label
-                                        class="flex w-max cursor-pointer select-none items-center gap-1"
-                                        for="mass_action_select_all_records"
-                                    >
+                                    <label class="flex w-max cursor-pointer select-none items-center gap-1" for="mass_action_select_all_records">
                                         <input
                                             type="checkbox"
                                             name="mass_action_select_all_records"
@@ -150,12 +151,10 @@
                                                     applied.massActions.meta.mode === 'partial' ? 'peer-checked:icon-checkbox-multiple peer-checked:text-brandColor' : ''
                                                 ),
                                             ]"
-                                        >
-                                        </span>
+                                        ></span>
                                     </label>
                                 </div>
-                                
-                                <!-- Mobile Sort Dropdown -->
+
                                 <div v-if="available.columns.some(column => column.sortable)">
                                     <x-admin::dropdown position="bottom-{{ in_array(app()->getLocale(), ['fa', 'ar']) ? 'left' : 'right' }}">
                                         <x-slot:toggle>
@@ -164,15 +163,12 @@
                                                     type="button"
                                                     class="inline-flex w-full max-w-max cursor-pointer appearance-none items-center justify-between gap-x-2 rounded-md border bg-white px-2.5 py-1.5 text-center leading-6 text-gray-600 transition-all marker:shadow hover:border-gray-400 focus:border-gray-400 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-400 dark:focus:border-gray-400"
                                                 >
-                                                    <span>
-                                                        Sort
-                                                    </span>
-                    
+                                                    <span>Sort</span>
                                                     <span class="icon-down-arrow text-2xl"></span>
                                                 </button>
                                             </div>
                                         </x-slot>
-                
+
                                         <x-slot:menu>
                                             <x-admin::dropdown.menu.item
                                                 v-for="column in available.columns.filter(column => column.sortable && column.visibility)"
@@ -208,11 +204,13 @@
                     </template>
 
                     <template v-else>
+                        <!-- ✅ Desktop Rows -->
                         <div
-                            class="row grid grid-cols-[.1fr_.2fr_.2fr_.2fr_.2fr_.2fr] grid-rows-1 border-b px-4 py-2.5 transition-all hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-950 max-lg:hidden"
+                            class="row grid grid-rows-1 border-b px-4 py-2.5 transition-all hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-950 max-lg:hidden"
+                            style="grid-template-columns: .1fr .22fr .22fr .22fr .12fr .22fr .10fr;"
                             v-for="record in available.records"
                         >
-                            <!-- Mass Action and Person ID. -->
+                            <!-- Mass Action + ID -->
                             <div class="flex items-center gap-2.5">
                                 <input
                                     type="checkbox"
@@ -236,7 +234,6 @@
                             <!-- Name -->
                             <div class="flex items-center gap-1.5 dark:text-gray-300">
                                 <x-admin::avatar ::name="record.person_name" />
-
                                 @{{ record.person_name }}
                             </div>
 
@@ -246,22 +243,20 @@
                             </p>
 
                             <!-- Contact Numbers -->
-                            <p class="flex items-center dark:text-gray-300">
-                                @{{ record.contact_numbers }}
-                            </p>
+                            <p class="flex items-center dark:text-gray-300" v-html="record.contact_numbers"></p>
+
+                            <!-- Call Button -->
+<p class="flex items-center dark:text-gray-300" v-html="record.call_status"></p>
 
                             <!-- Organization -->
                             <p class="flex items-center dark:text-gray-300">
                                 @{{ record.organization }}
                             </p>
 
-                            <!-- Actions -->
+                            <!-- Actions icons -->
                             <div class="flex items-center justify-end gap-x-4">
                                 <div class="flex items-center gap-1.5">
-                                    <p
-                                        class="place-self-end"
-                                        v-if="available.actions.length"
-                                    >
+                                    <p class="place-self-end" v-if="available.actions.length">
                                         <span
                                             class="cursor-pointer rounded-md p-1.5 text-2xl transition-all hover:bg-gray-200 dark:hover:bg-gray-800 max-sm:place-self-center"
                                             :class="action.icon"
@@ -274,13 +269,12 @@
                             </div>
                         </div>
 
-                        <!-- Mobile Card View -->
+                        <!-- ✅ Mobile Card View -->
                         <div
                             class="hidden border-b px-4 py-4 text-black dark:border-gray-800 dark:text-gray-300 max-lg:block"
                             v-for="record in available.records"
                         >
                             <div class="mb-2 flex items-center justify-between">
-                                <!-- Mass Actions for Mobile Cards -->
                                 <div class="flex w-full items-center justify-between gap-2">
                                     <p v-if="available.massActions.length">
                                         <label :for="`mass_action_select_record_${record[available.meta.primary_column]}`">
@@ -292,30 +286,22 @@
                                                 class="peer hidden"
                                                 v-model="applied.massActions.indices"
                                             >
-    
-                                            <span class="icon-checkbox-outline peer-checked:icon-checkbox-select cursor-pointer rounded-md text-2xl text-gray-500 peer-checked:text-brandColor">
-                                            </span>
+                                            <span class="icon-checkbox-outline peer-checked:icon-checkbox-select cursor-pointer rounded-md text-2xl text-gray-500 peer-checked:text-brandColor"></span>
                                         </label>
                                     </p>
 
-                                    <!-- Actions for Mobile -->
-                                    <div
-                                        class="flex w-full items-center justify-end"
-                                        v-if="available.actions.length"
-                                    >
+                                    <div class="flex w-full items-center justify-end" v-if="available.actions.length">
                                         <span
                                             class="dark:hover:bg-gray-80 cursor-pointer rounded-md p-1.5 text-2xl transition-all hover:bg-gray-200"
                                             :class="action.icon"
                                             v-text="! action.icon ? action.title : ''"
                                             v-for="action in record.actions"
                                             @click="performAction(action)"
-                                        >
-                                        </span>
+                                        ></span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Card Content -->
                             <div class="grid gap-2">
                                 <template v-for="column in available.columns">
                                     <div class="flex flex-wrap items-baseline gap-x-2">

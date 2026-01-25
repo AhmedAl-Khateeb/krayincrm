@@ -14,6 +14,14 @@ class PersonDataGrid extends DataGrid
     {
     }
 
+    private function getAttributeIdByCode(string $code, string $entityType): ?int
+    {
+        return DB::table('attributes')
+            ->where('entity_type', $entityType)
+            ->where('code', $code)
+            ->value('id');
+    }
+
     public function prepareQueryBuilder(): Builder
     {
         $queryBuilder = DB::table('persons')
@@ -27,16 +35,33 @@ class PersonDataGrid extends DataGrid
                 'organizations.id as organization_id'
             );
 
+        // ✅ call_status attribute id
+        $callStatusAttrId = $this->getAttributeIdByCode('call_status', 'persons');
+
+        if ($callStatusAttrId) {
+            $lastAv = DB::table('attribute_values')
+                ->selectRaw('MAX(id) as id, entity_id')
+                ->where('entity_type', 'persons')
+                ->where('attribute_id', $callStatusAttrId)
+                ->groupBy('entity_id');
+
+            $queryBuilder
+                ->leftJoinSub($lastAv, 'av_last_cs', function ($join) {
+                    $join->on('av_last_cs.entity_id', '=', 'persons.id');
+                })
+                ->leftJoin('attribute_values as av_cs', 'av_cs.id', '=', 'av_last_cs.id')
+                ->leftJoin('attribute_options as ao_cs', 'ao_cs.id', '=', 'av_cs.integer_value')
+                ->addSelect(DB::raw('ao_cs.name as call_status'));
+
+            $this->addFilter('call_status', 'ao_cs.name');
+        } else {
+            $queryBuilder->addSelect(DB::raw('NULL as call_status'));
+        }
+
         $userIds = VisibleUsers::ids();
 
-        if (!empty($userIds)) {
+        if ($userIds !== null) {
             $queryBuilder->whereIn('persons.user_id', $userIds);
-
-            // يضمن إن لو الشخص مربوط بمنظمة، المنظمة كمان تكون للموظف
-            $queryBuilder->where(function ($q) use ($userIds) {
-                $q->whereNull('persons.organization_id')
-                  ->orWhereIn('organizations.user_id', $userIds);
-            });
         }
 
         $this->addFilter('id', 'persons.id');
@@ -80,10 +105,86 @@ class PersonDataGrid extends DataGrid
             'index' => 'contact_numbers',
             'label' => trans('admin::app.contacts.persons.index.datagrid.contact-numbers'),
             'type' => 'string',
-            'sortable' => false,
+            'sortable' => true,
             'filterable' => true,
             'searchable' => true,
-            'closure' => fn ($row) => $this->normalizeJsonList($row->contact_numbers),
+            'exportable' => true,
+            'escape' => false,
+            'closure' => function ($row) {
+                $raw = $row->contact_numbers;
+
+                if (!$raw) {
+                    return '--';
+                }
+
+                $arr = json_decode($raw, true);
+
+                // لو مش JSON
+                if (!is_array($arr)) {
+                    $phone = trim((string) $raw);
+                } else {
+                    $phone = $arr[0]['value'] ?? null;
+                }
+
+                if (!$phone) {
+                    return '--';
+                }
+
+                $digits = preg_replace('/\D+/', '', (string) $phone);
+                if ($digits === '') {
+                    return '--';
+                }
+
+                // ✅ لو Export: رجّع رقم بس
+                if (request()->has('export')) {
+                    return $phone;
+                }
+
+                // ✅ للعرض بس: HTML
+                return '
+        <div class="flex items-center gap-3">
+            <span class="text-gray-800 dark:text-gray-200">'.e($phone).'</span>
+
+            <a href="tel:'.e($digits).'"
+               class="inline-flex items-center justify-center px-4 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition text-sm font-medium">
+               Call
+            </a>
+        </div>';
+            },
+        ]);
+
+        $this->addColumn([
+            'index' => 'call_status',
+            'label' => 'Call Status',
+            'type' => 'string',
+            'filterable' => true,
+            'sortable' => true,
+            'searchable' => true,
+            'exportable' => false,
+            'escape' => false,
+            'closure' => function ($row) {
+                $status = trim((string) ($row->call_status ?? ''));
+
+                if ($status === '') {
+                    return '--';
+                }
+
+                // ✅ لو Export: نص بس
+                if (request()->has('export')) {
+                    return $status;
+                }
+
+                // ✅ Badge للعرض
+                $hash = crc32($status);
+                $h = $hash % 360;
+                $bg = "hsl($h, 85%, 92%)";
+                $fg = "hsl($h, 70%, 28%)";
+
+                return '<span style="background:'.$bg.'; color:'.$fg.';"
+        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold">
+        '.e($status).'
+    </span>';
+            },
         ]);
 
         $this->addColumn([

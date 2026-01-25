@@ -2,6 +2,7 @@
 
 namespace Webkul\Admin\DataGrids\Lead;
 
+use App\Support\VisibleUsers;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Webkul\DataGrid\DataGrid;
@@ -81,7 +82,9 @@ class LeadDataGrid extends DataGrid
             ->groupBy('leads.id')
             ->where('leads.lead_pipeline_id', $this->pipeline->id);
 
-        if ($userIds = bouncer()->getAuthorizedUserIds()) {
+        $userIds = VisibleUsers::ids();
+
+        if ($userIds !== null) {
             $queryBuilder->whereIn('leads.user_id', $userIds);
         }
 

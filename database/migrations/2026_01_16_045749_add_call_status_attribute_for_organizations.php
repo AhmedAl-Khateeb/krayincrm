@@ -33,21 +33,13 @@ return new class extends Migration
 
         // ✅ 2) Insert Options
         $options = [
-            ['name' => 'Moved to Team Lead', 'sort_order' => 1],
-            ['name' => 'No Answer',          'sort_order' => 2],
-            ['name' => 'Not interested',     'sort_order' => 3],
-            ['name' => 'Not Working',        'sort_order' => 4],
-            ['name' => 'Outside Country',    'sort_order' => 5],
-            ['name' => 'Silent Call',        'sort_order' => 6],
-            ['name' => 'Successful Sale',    'sort_order' => 7],
-            ['name' => 'Switched off / Closed','sort_order' => 8],
-            ['name' => 'Trust issue',        'sort_order' => 9],
-            ['name' => 'Voice Mail',         'sort_order' => 10],
-            ['name' => 'Waiting For Papers', 'sort_order' => 11],
-            ['name' => 'WhatsAPP',           'sort_order' => 12],
-            ['name' => 'Call Dropped',       'sort_order' => 13],
+            ['name' => 'Follow UP',         'sort_order' => 1],
+            ['name' => 'Waiting For Papers', 'sort_order' => 2],
+            ['name' => 'WhatsAPP',           'sort_order' => 3],
+            ['name' => 'Call Back',       'sort_order' => 4],
         ];
 
+        
         foreach ($options as $opt) {
             DB::table('attribute_options')->insert([
                 'name'         => $opt['name'],

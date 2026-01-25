@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Webkul\Activity\Models\ActivityProxy;
 use Webkul\Activity\Traits\LogsActivity;
+use Webkul\Attribute\Models\AttributeValueProxy;
 use Webkul\Attribute\Traits\CustomAttribute;
 use Webkul\Contact\Contracts\Person as PersonContract;
 use Webkul\Contact\Database\Factories\PersonFactory;
@@ -18,7 +18,9 @@ use Webkul\User\Models\UserProxy;
 
 class Person extends Model implements PersonContract
 {
-    use CustomAttribute, HasFactory, LogsActivity;
+    use CustomAttribute;
+    use HasFactory;
+    use LogsActivity;
 
     /**
      * Table name.
@@ -32,7 +34,7 @@ class Person extends Model implements PersonContract
      *
      * @var string
      */
-    protected $with = 'organization';
+    protected $with = ['organization'];
 
     /**
      * The attributes that are castable.
@@ -40,7 +42,7 @@ class Person extends Model implements PersonContract
      * @var array
      */
     protected $casts = [
-        'emails'          => 'array',
+        'emails' => 'array',
         'contact_numbers' => 'array',
     ];
 
@@ -58,6 +60,13 @@ class Person extends Model implements PersonContract
         'organization_id',
         'unique_id',
     ];
+
+    protected $appends = ['attributeValues'];
+
+    public function getAttributeValuesAttribute()
+    {
+        return $this->attributeValues()->get();
+    }
 
     /**
      * Get the user that owns the lead.
@@ -78,9 +87,16 @@ class Person extends Model implements PersonContract
     /**
      * Get the activities.
      */
-    public function activities(): BelongsToMany
+    public function attributeValues()
     {
-        return $this->belongsToMany(ActivityProxy::modelClass(), 'person_activities');
+        return $this->hasMany(AttributeValueProxy::modelClass(), 'entity_id', 'id')
+            ->where('entity_type', 'persons');
+    }
+
+    // (اختياري) خلي القديم alias عشان أي كود تاني عندك ما يقعش
+    public function attribute_values()
+    {
+        return $this->attributeValues();
     }
 
     /**

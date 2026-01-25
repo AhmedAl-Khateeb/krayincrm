@@ -85,7 +85,7 @@ class LeadDataGrid extends DataGrid
 
         $userIds = VisibleUsers::ids();
 
-        if ($userIds) {
+        if ($userIds !== null) {
             $queryBuilder->whereIn('leads.user_id', $userIds);
         }
 
