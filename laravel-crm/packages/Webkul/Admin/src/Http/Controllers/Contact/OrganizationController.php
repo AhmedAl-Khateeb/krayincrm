@@ -76,7 +76,7 @@ class OrganizationController extends Controller
     public function edit(int $id): View
     {
         $organization = $this->organizationRepository->findOrFail($id);
-        $userIds = VisibleUsers::ids();
+        $userIds = (array) VisibleUsers::ids();
 
         if (!in_array($organization->user_id, $userIds)) {
             abort(403);

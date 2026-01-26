@@ -66,10 +66,10 @@ class OrganizationController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
- public function edit(int $id): View
+    public function edit(int $id): View
     {
         $organization = $this->organizationRepository->findOrFail($id);
-        $userIds = VisibleUsers::ids();
+        $userIds = (array) VisibleUsers::ids();
 
         if (!in_array($organization->user_id, $userIds)) {
             abort(403);
@@ -77,8 +77,6 @@ class OrganizationController extends Controller
 
         return view('admin::contacts.organizations.edit', compact('organization'));
     }
-
-
 
     /**
      * Update the specified resource in storage.
