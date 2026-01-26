@@ -69,12 +69,16 @@ class OrganizationController extends Controller
     public function edit(int $id): View
     {
         $organization = $this->organizationRepository->findOrFail($id);
-         $userIds = (array) (VisibleUsers::ids() ?? []);
+        $userIds = VisibleUsers::ids();
 
-    // تجاوز الـ 403 إذا user_id فارغ على السيرفر
-    if ($organization->user_id !== null && !in_array($organization->user_id, $userIds)) {
-        abort(403);
-    }
+        // إذا VisibleUsers::ids() = null (يعني admin/global) → السماح بالوصول
+        if ($userIds !== null) {
+            $userIds = (array) $userIds;
+
+            if ($organization->user_id !== null && !in_array($organization->user_id, $userIds)) {
+                abort(403);
+            }
+        }
 
         return view('admin::contacts.organizations.edit', compact('organization'));
     }
@@ -90,13 +94,17 @@ class OrganizationController extends Controller
 
         // ✅ Permission check
         $userIds = VisibleUsers::ids();
-        if (!empty($organization->user_id) && !in_array($organization->user_id, $userIds)) {
-            abort(403);
+
+        if ($userIds !== null) {
+            $userIds = (array) $userIds;
+
+            if (!empty($organization->user_id) && !in_array($organization->user_id, $userIds)) {
+                abort(403);
+            }
         }
 
         $data = $request->all();
 
-        // ✅ لو اليوزر مش متحدد خالص، اربطه بالمعدل الحالي
         if (empty($data['user_id'])) {
             $data['user_id'] = auth()->id();
         }

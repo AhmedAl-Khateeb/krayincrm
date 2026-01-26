@@ -60,10 +60,11 @@ class PersonController extends Controller
 
         $data = $request->all();
 
-        $me = auth()->guard('admin')->user();
+        // ✅ خذ المستخدم الحالي من الـ auth الافتراضي
+        $me = auth()->user(); // بدل auth()->guard('admin')->user()
         $isAdmin = optional($me->role)->permission_type === 'all';
 
-        // ✅ non-admin لازم يبقى owner هو نفسه
+        // ✅ non-admin لازم يكون owner هو نفسه
         if (!$isAdmin) {
             $data['user_id'] = $me->id;
         }
@@ -75,7 +76,7 @@ class PersonController extends Controller
         if ($orgId) {
             $org = $this->organizationRepository->find($orgId);
 
-            if (!$org || !in_array($org->user_id, $userIds)) {
+            if ($userIds !== null && (!$org || !in_array($org->user_id, (array) $userIds))) {
                 abort(403);
             }
         }
@@ -117,40 +118,58 @@ class PersonController extends Controller
     public function edit(int $id): View
     {
         $person = $this->personRepository->findOrFail($id);
+
         $userIds = VisibleUsers::ids();
 
-        if (!in_array($person->user_id, $userIds)) {
-            abort(403);
+        // إذا null → admin/global → السماح بالوصول
+        if ($userIds !== null) {
+            $userIds = (array) $userIds;
+
+            if (!empty($person->user_id) && !in_array($person->user_id, $userIds)) {
+                abort(403);
+            }
         }
 
-        return view('admin::contacts.persons.edit', compact('person'));
+        $person->load([
+            'organization',
+            'attributeValues' => fn ($q) => $q->with('attribute.options'),
+        ]);
+
+        $attributes = app('Webkul\Attribute\Repositories\AttributeRepository')->findWhere([
+            ['code', 'NOTIN', ['organization_id']],
+            'entity_type' => 'persons',
+        ]);
+
+        return view('admin::contacts.persons.edit', compact('person', 'attributes'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(AttributeForm $request, int $id): RedirectResponse|JsonResponse
     {
         Event::dispatch('contacts.person.update.before', $id);
 
-        $data = $request->all();
+        $person = $this->personRepository->findOrFail($id);
 
-        $me = auth()->guard('admin')->user();
-        $isAdmin = optional($me->role)->permission_type === 'all';
+        $userIds = VisibleUsers::ids();
 
-        // ✅ non-admin ممنوع يغير owner
-        if (!$isAdmin) {
-            $data['user_id'] = $me->id;
+        if ($userIds !== null) {
+            $userIds = (array) $userIds;
+
+            if (!empty($person->user_id) && !in_array($person->user_id, $userIds)) {
+                abort(403);
+            }
         }
 
-        // ✅ امنع تغيير organization لواحدة مش تبع نفس اليوزر
-        $userIds = VisibleUsers::ids();
-        $orgId = $data['organization_id'] ?? null;
+        $data = $request->all();
 
+        if (empty($data['user_id'])) {
+            $data['user_id'] = auth()->id();
+        }
+
+        $orgId = $data['organization_id'] ?? null;
         if ($orgId) {
             $org = $this->organizationRepository->find($orgId);
 
-            if (!$org || !in_array($org->user_id, $userIds)) {
+            if ($userIds !== null && (!$org || !in_array($org->user_id, $userIds))) {
                 abort(403);
             }
         }

@@ -57,24 +57,23 @@ class PersonController extends Controller
 
         $data = $request->all();
 
-        $me = auth()->guard('admin')->user();
-
+        // ✅ خذ المستخدم الحالي من الـ auth الافتراضي
+        $me = auth()->user(); // بدل auth()->guard('admin')->user()
         $isAdmin = optional($me->role)->permission_type === 'all';
+
+        // ✅ non-admin لازم يكون owner هو نفسه
         if (!$isAdmin) {
             $data['user_id'] = $me->id;
-        } else {
-            if (empty($data['user_id'])) {
-                $data['user_id'] = $me->id;
-            }
         }
 
+        // ✅ امنع ربط person بـ organization مش تبع نفس اليوزر
         $userIds = VisibleUsers::ids();
         $orgId = $data['organization_id'] ?? null;
 
         if ($orgId) {
             $org = $this->organizationRepository->find($orgId);
 
-            if (!$org || !in_array($org->user_id, $userIds)) {
+            if ($userIds !== null && (!$org || !in_array($org->user_id, (array) $userIds))) {
                 abort(403);
             }
         }
@@ -117,12 +116,17 @@ class PersonController extends Controller
     {
         $person = $this->personRepository->findOrFail($id);
 
-        $userIds = (array) (VisibleUsers::ids() ?? []);
-        if (!empty($person->user_id) && !in_array($person->user_id, $userIds)) {
-            abort(403);
+        $userIds = VisibleUsers::ids();
+
+        // إذا null → admin/global → السماح بالوصول
+        if ($userIds !== null) {
+            $userIds = (array) $userIds;
+
+            if (!empty($person->user_id) && !in_array($person->user_id, $userIds)) {
+                abort(403);
+            }
         }
 
-        // ✅ حمّل attribute_values بس… من غير options
         $person->load([
             'organization',
             'attributeValues' => fn ($q) => $q->with('attribute.options'),
@@ -136,42 +140,37 @@ class PersonController extends Controller
         return view('admin::contacts.persons.edit', compact('person', 'attributes'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(AttributeForm $request, int $id): RedirectResponse|JsonResponse
     {
         Event::dispatch('contacts.person.update.before', $id);
 
-        // ✅ هات الشخص الأول
         $person = $this->personRepository->findOrFail($id);
 
-        // ✅ Permission check (نفس بتاع organizations)
         $userIds = VisibleUsers::ids();
 
-        if (!empty($person->user_id) && !in_array($person->user_id, $userIds)) {
-            abort(403);
-        }
+        if ($userIds !== null) {
+            $userIds = (array) $userIds;
 
-        $data = $request->all();
-
-        // ✅ لو اليوزر مش متحدد خالص اربطه بالمستخدم الحالي
-        if (empty($data['user_id'])) {
-            $data['user_id'] = auth()->id(); // ✅ بدون guard
-        }
-
-        // ✅ امنع تغيير organization لواحدة مش تبع نفس اليوزر
-        $orgId = $data['organization_id'] ?? null;
-
-        if ($orgId) {
-            $org = $this->organizationRepository->find($orgId);
-
-            if (!$org || !in_array($org->user_id, $userIds)) {
+            if (!empty($person->user_id) && !in_array($person->user_id, $userIds)) {
                 abort(403);
             }
         }
 
-        // ✅ نفّذ التحديث بالـ $data (مش request()->all())
+        $data = $request->all();
+
+        if (empty($data['user_id'])) {
+            $data['user_id'] = auth()->id();
+        }
+
+        $orgId = $data['organization_id'] ?? null;
+        if ($orgId) {
+            $org = $this->organizationRepository->find($orgId);
+
+            if ($userIds !== null && (!$org || !in_array($org->user_id, $userIds))) {
+                abort(403);
+            }
+        }
+
         $person = $this->personRepository->update($data, $id);
 
         Event::dispatch('contacts.person.update.after', $person);

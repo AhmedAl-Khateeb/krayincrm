@@ -76,42 +76,19 @@ class OrganizationController extends Controller
     public function edit(int $id): View
     {
         $organization = $this->organizationRepository->findOrFail($id);
-        $userIds = (array) (VisibleUsers::ids() ?? []);
+        $userIds = VisibleUsers::ids();
 
-        // تجاوز الـ 403 إذا user_id فارغ على السيرفر
-        if ($organization->user_id !== null && !in_array($organization->user_id, $userIds)) {
-            abort(403);
+        // إذا VisibleUsers::ids() = null (يعني admin/global) → السماح بالوصول
+        if ($userIds !== null) {
+            $userIds = (array) $userIds;
+
+            if ($organization->user_id !== null && !in_array($organization->user_id, $userIds)) {
+                abort(403);
+            }
         }
 
         return view('admin::contacts.organizations.edit', compact('organization'));
     }
-
-    //        public function edit(int $id): View
-    // {
-    //     $entity = $this->organizationRepository
-    //         ->findOrFail($id);
-
-    //     $entity->loadMissing([
-    //         'attributeValues' => function ($q) {
-    //             $q->with('attribute.options');
-    //         },
-    //         'user'
-    //     ]);
-
-    //     $customAttributes = app('Webkul\Attribute\Repositories\AttributeRepository')
-    //         ->scopeQuery(fn ($q) =>
-    //             $q->where('entity_type', 'organizations')
-    //               ->where('code', '!=', 'address')
-    //         )
-    //         ->with('options')
-    //         ->get();
-
-    //     return view('admin::contacts.organizations.edit', [
-    //         'entity'            => $entity,
-    //         'organization'      => $entity,
-    //         'customAttributes'  => $customAttributes,
-    //     ]);
-    // }
 
     /**
      * Update the specified resource in storage.
@@ -122,8 +99,18 @@ class OrganizationController extends Controller
 
         $userIds = VisibleUsers::ids();
 
-        if (!in_array($organization->user_id, $userIds)) {
-            abort(403);
+        if ($userIds !== null) {
+            $userIds = (array) $userIds;
+
+            if (!empty($organization->user_id) && !in_array($organization->user_id, $userIds)) {
+                abort(403);
+            }
+        }
+
+        $data = $request->all();
+
+        if (empty($data['user_id'])) {
+            $data['user_id'] = auth()->id();
         }
 
         Event::dispatch('contacts.organization.update.before', $id);
