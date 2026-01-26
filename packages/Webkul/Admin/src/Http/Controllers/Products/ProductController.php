@@ -4,18 +4,20 @@ namespace Webkul\Admin\Http\Controllers\Products;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Webkul\Admin\DataGrids\Product\ProductDataGrid;
 use Webkul\Admin\Http\Controllers\Controller;
 use Webkul\Admin\Http\Requests\AttributeForm;
 use Webkul\Admin\Http\Requests\MassDestroyRequest;
+use Webkul\Admin\Http\Requests\ProductUpdateForm;
 use Webkul\Admin\Http\Resources\ProductResource;
-use Webkul\Product\Repositories\ProductRepository;
-
-// ✅ NEW
 use Webkul\Lead\Repositories\TypeRepository;
+// ✅ NEW
+use Webkul\Product\Repositories\ProductRepository;
 
 class ProductController extends Controller
 {
@@ -46,7 +48,7 @@ class ProductController extends Controller
     {
         // ✅ validate lead_type_ids (optional)
         $request->validate([
-            'lead_type_ids'   => ['nullable', 'array'],
+            'lead_type_ids' => ['nullable', 'array'],
             'lead_type_ids.*' => ['integer'],
         ]);
 
@@ -84,7 +86,53 @@ class ProductController extends Controller
     {
         $product = $this->productRepository->findOrFail($id);
 
-        // ✅ ensure relation loaded
+        // ✅ هات attribute ids ديناميك من code
+        $attrIds = DB::table('attributes')
+            ->where('entity_type', 'products')
+            ->whereIn('code', ['name', 'sku', 'description', 'price', 'quantity', 'Plan_P'])
+            ->pluck('id', 'code')
+            ->toArray();
+
+        // ✅ لو موجودين: اعمل upsert في attribute_values من جدول products
+        if (!empty($attrIds)) {
+            $upsert = function ($attributeId, array $values) use ($product) {
+                DB::table('attribute_values')->updateOrInsert(
+                    [
+                        'entity_type' => 'products',
+                        'entity_id' => $product->id,
+                        'attribute_id' => $attributeId,
+                    ],
+                    $values + ['unique_id' => (string) Str::uuid()]
+                );
+            };
+
+            if (!empty($attrIds['name'])) {
+                $upsert($attrIds['name'], ['text_value' => $product->name]);
+            }
+
+            if (!empty($attrIds['sku'])) {
+                $upsert($attrIds['sku'], ['text_value' => $product->sku]);
+            }
+
+            if (!empty($attrIds['description'])) {
+                $upsert($attrIds['description'], ['text_value' => $product->description]);
+            }
+
+            if (!empty($attrIds['Plan_P'])) {
+                DB::table('attribute_values')->updateOrInsert(
+                    [
+                        'entity_type' => 'products',
+                        'entity_id' => $product->id,
+                        'attribute_id' => $attrIds['Plan_P'],
+                    ],
+                    ['unique_id' => (string) Str::uuid()]
+                );
+            }
+        }
+
+        $product->load('attribute_values');
+
+        // leadTypes
         if (method_exists($product, 'leadTypes')) {
             $product->load('leadTypes');
         }
@@ -96,12 +144,12 @@ class ProductController extends Controller
             ->get()
             ->map(function ($inventory) {
                 return [
-                    'id'                    => $inventory->id,
-                    'name'                  => $inventory->location->name,
-                    'warehouse_id'          => $inventory->warehouse_id,
+                    'id' => $inventory->id,
+                    'name' => $inventory->location->name,
+                    'warehouse_id' => $inventory->warehouse_id,
                     'warehouse_location_id' => $inventory->warehouse_location_id,
-                    'in_stock'              => $inventory->in_stock,
-                    'allocated'             => $inventory->allocated,
+                    'in_stock' => $inventory->in_stock,
+                    'allocated' => $inventory->allocated,
                 ];
             });
 
@@ -110,31 +158,43 @@ class ProductController extends Controller
 
     public function update(AttributeForm $request, int $id)
     {
-        // ✅ validate lead_type_ids (optional)
         $request->validate([
-            'lead_type_ids'   => ['nullable', 'array'],
+            'lead_type_ids' => ['nullable', 'array'],
             'lead_type_ids.*' => ['integer'],
         ]);
 
         Event::dispatch('product.update.before', $id);
 
-        $product = $this->productRepository->update($request->all(), $id);
+        $data = $request->except(['_token', '_method']);
 
-        // ✅ sync lead types
-        $typeIds = collect($request->input('lead_type_ids', []))
-            ->map(fn ($x) => (int) $x)
-            ->filter(fn ($x) => $x > 0)
-            ->unique()
-            ->values()
-            ->all();
+        $data = collect($data)->reject(function ($value, $key) {
+            if ($key === 'entity_type') {
+                return false;
+            }
 
-        if (method_exists($product, 'leadTypes')) {
+            if (is_array($value)) {
+                return empty(array_filter($value, fn ($v) => !($v === null || $v === '')));
+            }
+
+            return $value === null || $value === '';
+        })->toArray();
+
+        $product = $this->productRepository->update($data, $id);
+
+        if ($request->has('lead_type_ids') && method_exists($product, 'leadTypes')) {
+            $typeIds = collect($request->input('lead_type_ids', []))
+                ->map(fn ($x) => (int) $x)
+                ->filter(fn ($x) => $x > 0)
+                ->unique()
+                ->values()
+                ->all();
+
             $product->leadTypes()->sync($typeIds);
         }
 
         Event::dispatch('product.update.after', $product);
 
-        if (request()->ajax()) {
+        if ($request->ajax()) {
             return response()->json([
                 'message' => trans('admin::app.products.index.update-success'),
             ]);
@@ -145,14 +205,18 @@ class ProductController extends Controller
         return redirect()->route('admin.products.index');
     }
 
+
+
+
+
     public function storeInventories(int $id, ?int $warehouseId = null): JsonResponse
     {
         $this->validate(request(), [
-            'inventories'                         => 'array',
+            'inventories' => 'array',
             'inventories.*.warehouse_location_id' => 'required',
-            'inventories.*.warehouse_id'          => 'required',
-            'inventories.*.in_stock'              => 'required|integer|min:0',
-            'inventories.*.allocated'             => 'required|integer|min:0',
+            'inventories.*.warehouse_id' => 'required',
+            'inventories.*.in_stock' => 'required|integer|min:0',
+            'inventories.*.allocated' => 'required|integer|min:0',
         ]);
 
         $product = $this->productRepository->findOrFail($id);

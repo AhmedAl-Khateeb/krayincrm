@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Webkul\Admin\DataGrids\Settings\AttributeDataGrid;
 use Webkul\Admin\Http\Controllers\Controller;
@@ -24,7 +25,8 @@ class AttributeController extends Controller
     public function __construct(
         protected AttributeRepository $attributeRepository,
         protected AttributeValueRepository $attributeValueRepository
-    ) {}
+    ) {
+    }
 
     /**
      * Display a listing of the resource.
@@ -52,7 +54,7 @@ class AttributeController extends Controller
     public function store(): RedirectResponse
     {
         $this->validate(request(), [
-            'code' => ['required', 'unique:attributes,code,NULL,NULL,entity_type,'.request('entity_type'), new Code],
+            'code' => ['required', 'unique:attributes,code,NULL,NULL,entity_type,'.request('entity_type'), new Code()],
             'name' => 'required',
             'type' => 'required',
         ]);
@@ -86,7 +88,13 @@ class AttributeController extends Controller
     public function update($id): RedirectResponse
     {
         $this->validate(request(), [
-            'code' => ['required', 'unique:attributes,code,NULL,NULL,entity_type,'.$id, new Code],
+            'code' => [
+                'required',
+                new Code(),
+                Rule::unique('attributes', 'code')
+                    ->ignore($id)
+                    ->where(fn ($q) => $q->where('entity_type', request('entity_type'))),
+            ],
             'name' => 'required',
             'type' => 'required',
         ]);
@@ -109,7 +117,7 @@ class AttributeController extends Controller
     {
         $attribute = $this->attributeRepository->findOrFail($id);
 
-        if (! $attribute->is_user_defined) {
+        if (!$attribute->is_user_defined) {
             return response()->json([
                 'message' => trans('admin::app.settings.attributes.index.user-define-error'),
             ], 400);
@@ -123,7 +131,7 @@ class AttributeController extends Controller
             Event::dispatch('settings.attribute.delete.after', $id);
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => trans('admin::app.settings.attributes.index.delete-success'),
             ], 200);
         } catch (\Exception $exception) {
@@ -155,7 +163,7 @@ class AttributeController extends Controller
     }
 
     /**
-     * Search attribute lookup results
+     * Search attribute lookup results.
      */
     public function lookup($lookup): JsonResponse
     {
@@ -165,7 +173,7 @@ class AttributeController extends Controller
     }
 
     /**
-     * Search attribute lookup results
+     * Search attribute lookup results.
      */
     public function lookupEntity(string $lookup): JsonResponse
     {
@@ -186,7 +194,7 @@ class AttributeController extends Controller
         foreach ($attributes as $attribute) {
             $attribute = $this->attributeRepository->find($attribute->id);
 
-            if (! $attribute->is_user_defined) {
+            if (!$attribute->is_user_defined) {
                 continue;
             }
 
@@ -196,10 +204,10 @@ class AttributeController extends Controller
 
             Event::dispatch('settings.attribute.delete.after', $attribute->id);
 
-            $count++;
+            ++$count;
         }
 
-        if (! $count) {
+        if (!$count) {
             return response()->json([
                 'message' => trans('admin::app.settings.attributes.index.mass-delete-failed'),
             ], 400);
@@ -213,7 +221,7 @@ class AttributeController extends Controller
     /**
      * Get attribute options associated with attribute.
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function getAttributeOptions(int $id)
     {
@@ -223,11 +231,11 @@ class AttributeController extends Controller
     }
 
     /**
-     * Download image or file
+     * Download image or file.
      */
     public function download()
     {
-        if (! request('path')) {
+        if (!request('path')) {
             return false;
         }
 

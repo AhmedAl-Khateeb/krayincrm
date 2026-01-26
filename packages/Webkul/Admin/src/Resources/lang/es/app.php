@@ -1860,6 +1860,8 @@ return [
                 'quantity'     => 'Cantidad',
                 'price'        => 'Precio',
                 'amount'       => 'Monto',
+                 'plan'         => 'Plan', 
+                 'select-plan'  => 'Seleccionar Plan',
                 'action'       => 'Acción',
                 'add-more'     => 'Agregar Más',
                 'total'        => 'Total',

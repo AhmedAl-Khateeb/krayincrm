@@ -21,6 +21,7 @@ class Product extends Model implements ProductContract
         'amount',
         'product_id',
         'lead_id',
+        'plan_option_id',
     ];
 
     /**

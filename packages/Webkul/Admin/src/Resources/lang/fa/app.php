@@ -1857,6 +1857,8 @@ return [
                 'product-name' => 'نام محصول',
                 'quantity'     => 'تعداد',
                 'price'        => 'قیمت',
+                 'plan'         => 'طرح', 
+                 'select-plan'  => 'انتخاب طرح',
                 'amount'       => 'مقدار',
                 'action'       => 'عملیات',
                 'add-more'     => 'افزودن بیشتر',

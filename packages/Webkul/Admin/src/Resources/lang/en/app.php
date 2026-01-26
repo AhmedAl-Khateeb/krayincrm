@@ -2027,6 +2027,8 @@ return [
                 'product-name' => 'Product Name',
                 'quantity'     => 'Quantity',
                 'price'        => 'Price',
+                 'plan'         => 'Plan', 
+                 'select-plan'  => 'Select Plan',
                 'amount'       => 'Amount',
                 'action'       => 'Action',
                 'add-more'     => 'Add More',

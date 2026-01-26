@@ -330,8 +330,8 @@
                                     name="code"
                                     rules="required"
                                     :value="$selectedOption"
-                                    :disabled="(boolean) $selectedOption"
-                                    readonly
+                                    {{-- :disabled="(boolean) $selectedOption"
+                                    readonly --}}
                                     :label="trans('admin::app.settings.attributes.edit.code')"
                                     :placeholder="trans('admin::app.settings.attributes.edit.code')"
                                 />
@@ -366,7 +366,7 @@
                                     name="type"
                                     rules="required"
                                     :value="$selectedOption"
-                                    :disabled="(boolean) $selectedOption"
+                                    {{-- :disabled="(boolean) $selectedOption" --}}
                                     :label="trans('admin::app.settings.attributes.edit.type')"
                                 >
                                     <!-- Here! All Needed types are defined -->

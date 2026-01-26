@@ -5,7 +5,7 @@
 {!! view_render_event('admin.leads.create.products.form_controls.after') !!}
 
 @pushOnce('scripts')
-<script type="text/x-template" id="v-product-list-template">
+    <script type="text/x-template" id="v-product-list-template">
     <div class="flex flex-col gap-4">
         {!! view_render_event('admin.leads.create.products.form_controls.table.before') !!}
 
@@ -25,6 +25,11 @@
 
                         <x-admin::table.th class="text-center">
                             @lang('admin::app.leads.common.products.price')
+                        </x-admin::table.th>
+                        
+
+                        <x-admin::table.th class="text-center">
+                            @lang('admin::app.leads.common.products.plan')
                         </x-admin::table.th>
 
                         <x-admin::table.th class="text-center">
@@ -49,6 +54,7 @@
                         :index="index"
                         :business-type="businessType"
                         :allowed-product-ids="allowedProductIds"
+                        :plan-options="planOptions" 
                         @onRemoveProduct="removeProduct($event)"
                     ></v-product-item>
 
@@ -70,7 +76,7 @@
     </div>
 </script>
 
-<script type="text/x-template" id="v-product-item-template">
+    <script type="text/x-template" id="v-product-item-template">
     <x-admin::table.tbody.tr>
         <x-admin::table.td>
             <x-admin::form.control-group class="!mb-0">
@@ -126,6 +132,28 @@
             </x-admin::form.control-group>
         </x-admin::table.td>
 
+        <x-admin::table.td class="text-center">
+    <x-admin::form.control-group class="!mb-0">
+        <select
+            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
+                   dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            :name="`${inputName}[plan_option_id]`"
+            v-model="product.plan_option_id"
+        >
+            <option value="" disabled>{{ trans('admin::app.leads.common.products.select-plan') }}</option>
+
+            <option
+                v-for="opt in planOptions"
+                :key="opt.id"
+                :value="opt.id"
+            >
+                @{{ opt.label }}
+            </option>
+        </select>
+    </x-admin::form.control-group>
+</x-admin::table.td>
+
+
         <x-admin::table.td class="text-right">
             <x-admin::form.control-group>
                 <x-admin::form.control-group.control
@@ -149,119 +177,148 @@
     </x-admin::table.tbody.tr>
 </script>
 
-<script type="module">
-    app.component('v-product-list', {
-        template: '#v-product-list-template',
-        props: ['data'],
+    <script type="module">
+        app.component('v-product-list', {
+            template: '#v-product-list-template',
+            props: ['data'],
 
-        data() {
-            return {
-                products: Array.isArray(this.data) ? this.data : [],
-                allowedProductIds: [],
-            };
-        },
-
-        mounted() {
-            window.addEventListener('lead-products-options-updated', this.onProductsOptionsUpdated);
-
-            if (!this.products.length) {
-                this.addProduct();
-            }
-        },
-
-        beforeUnmount() {
-            window.removeEventListener('lead-products-options-updated', this.onProductsOptionsUpdated);
-        },
-
-        methods: {
-            onProductsOptionsUpdated(e) {
-    const payload = e?.detail || {};
-    const items = Array.isArray(payload.items) ? payload.items : [];
-
-    this.allowedProductIds = items
-        .map(x => x?.id)
-        .filter(x => x !== null && x !== undefined);
-
-    if (payload.clearSelected) {
-        this.products = this.products.map(p => ({
-            ...p,
-            product_id: null,
-            name: '',
-            price: 0,
-            quantity: 1,
-            amount: null,
-        }));
-    }
-
-    if (!this.products.length) {
-        this.addProduct();
-    }
-},
-
-
-            addProduct() {
-                this.products.push({
-                    id: null,
-                    product_id: null,
-                    name: '',
-                    quantity: 1,
-                    price: 0,
-                    amount: null,
-                });
-            },
-
-            removeProduct(product) {
-                const index = this.products.indexOf(product);
-                if (index >= 0) this.products.splice(index, 1);
-            },
-        },
-    });
-
-    app.component('v-product-item', {
-        template: '#v-product-item-template',
-
-        props: ['index', 'product', 'allowedProductIds'],
-
-        computed: {
-            inputName() {
-                return this.product.id
-                    ? `products[${this.product.id}]`
-                    : `products[product_${this.index}]`;
-            },
-
-            src() {
-                return "{{ route('admin.products.search') }}";
-            },
-
-            lookupParams() {
-                const ids = (this.allowedProductIds || []).filter(x => x != null);
-
-                // لو مفيش ids، ماتبعتهوش عشان مايفلترش غلط
-                const base = {
-                    query: this.product.name,
-                    business_type: this.businessType,
+            data() {
+                return {
+                    products: Array.isArray(this.data) ? this.data : [],
+                    allowedProductIds: [],
+                    planOptions: [],
                 };
-
-                if (ids.length) {
-                    base.allowed_ids = ids.join(',');
-                }
-
-                return base;
-            },
-        },
-
-        methods: {
-            addProduct(result) {
-                this.product.product_id = result.id;
-                this.product.name = result.name;
-                this.product.price = result.price;
-                this.product.quantity = result.quantity ?? 1;
             },
 
-            removeProduct() {
-                this.$emit('onRemoveProduct', this.product);
+            mounted() {
+                window.addEventListener('lead-products-options-updated', this.onProductsOptionsUpdated);
+
+                window.addEventListener('lead-plan-options-updated', this.onPlanOptionsUpdated);
+
+                // ✅ fallback لو الـ event متأخر/ضاع
+                this.fetchPlanOptions();
+
+                if (!this.products.length) this.addProduct();
             },
-        },
-    });
-</script>
+
+
+            beforeUnmount() {
+                window.removeEventListener('lead-products-options-updated', this.onProductsOptionsUpdated);
+                window.removeEventListener('lead-plan-options-updated', this.onPlanOptionsUpdated);
+            },
+
+            methods: {
+                onProductsOptionsUpdated(e) {
+                    const payload = e?.detail || {};
+                    const items = Array.isArray(payload.items) ? payload.items : [];
+
+                    this.allowedProductIds = items
+                        .map(x => x?.id)
+                        .filter(x => x !== null && x !== undefined);
+
+                    if (payload.clearSelected) {
+                        this.products = this.products.map(p => ({
+                            ...p,
+                            product_id: null,
+                            name: '',
+                            price: 0,
+                            quantity: 1,
+                            amount: null,
+                            plan_option_id: null,
+                        }));
+                    }
+
+                    if (!this.products.length) {
+                        this.addProduct();
+                    }
+                },
+
+
+                addProduct() {
+                    this.products.push({
+                        id: null,
+                        product_id: null,
+                        name: '',
+                        quantity: 1,
+                        price: 0,
+                        amount: null,
+                        plan_option_id: null,
+                    });
+                },
+
+                removeProduct(product) {
+                    const index = this.products.indexOf(product);
+                    if (index >= 0) this.products.splice(index, 1);
+                },
+
+                async fetchPlanOptions() {
+                    try {
+                        const url = `{{ route('admin.leads.plan_options') }}`;
+                        const res = await fetch(url, {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        const data = await res.json();
+
+                        this.planOptions = data.items || [];
+                    } catch (e) {
+                        console.error('fetchPlanOptions failed', e);
+                    }
+                },
+
+                onPlanOptionsUpdated(e) {
+                    this.planOptions = (e?.detail?.items || []);
+                },
+
+            },
+        });
+
+        app.component('v-product-item', {
+            template: '#v-product-item-template',
+
+            props: ['index', 'product', 'allowedProductIds', 'planOptions', 'businessType'],
+
+            computed: {
+                inputName() {
+                    return this.product.id ?
+                        `products[${this.product.id}]` :
+                        `products[product_${this.index}]`;
+                },
+
+                src() {
+                    return "{{ route('admin.products.search') }}";
+                },
+
+                lookupParams() {
+                    const ids = (this.allowedProductIds || []).filter(x => x != null);
+
+                    // لو مفيش ids، ماتبعتهوش عشان مايفلترش غلط
+                    const base = {
+                        query: this.product.name,
+                        business_type: this.businessType,
+                    };
+
+                    if (ids.length) {
+                        base.allowed_ids = ids.join(',');
+                    }
+
+                    return base;
+                },
+            },
+
+            methods: {
+                addProduct(result) {
+                    this.product.product_id = result.id;
+                    this.product.name = result.name;
+                    this.product.price = result.price;
+                    this.product.quantity = result.quantity ?? 1;
+                },
+
+                removeProduct() {
+                    this.$emit('onRemoveProduct', this.product);
+                },
+            },
+        });
+    </script>
 @endPushOnce

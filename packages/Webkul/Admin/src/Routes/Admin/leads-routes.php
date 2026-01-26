@@ -28,6 +28,8 @@ Route::controller(LeadController::class)->prefix('leads')->group(function () {
 
     Route::get('search', 'search')->name('admin.leads.search');
 
+    Route::get('plan-options', 'planOptions')->name('admin.leads.plan_options');
+
     Route::delete('{id}', 'destroy')->name('admin.leads.delete');
 
     Route::post('mass-update', 'massUpdate')->name('admin.leads.mass_update');

@@ -25,6 +25,7 @@ return new class extends Migration {
             $table->foreign('product_id', 'ltp_product_fk')
                 ->references('id')->on('products')
                 ->onDelete('cascade');
+            // $table->unsignedBigInteger('plan_option_id')->nullable();
         });
     }
 
@@ -33,4 +34,3 @@ return new class extends Migration {
         Schema::dropIfExists('lead_type_products');
     }
 };
-    

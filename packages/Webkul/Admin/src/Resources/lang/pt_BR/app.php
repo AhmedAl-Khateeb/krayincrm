@@ -1859,6 +1859,8 @@ return [
                 'product-name' => 'Nome do Produto',
                 'quantity'     => 'Quantidade',
                 'price'        => 'Preço',
+                'plan'         => 'Plano',
+                'select-plan'  => 'Selecionar Plano',
                 'amount'       => 'Valor',
                 'action'       => 'Ação',
                 'add-more'     => 'Adicionar Mais',

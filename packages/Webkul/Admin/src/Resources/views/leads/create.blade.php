@@ -7,7 +7,8 @@
 
     <x-admin::form :action="route('admin.leads.store')">
         <div class="flex flex-col gap-4">
-            <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+            <div
+                class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
                 <div class="flex flex-col gap-2">
                     <x-admin::breadcrumbs name="leads.create" />
 
@@ -32,21 +33,13 @@
             </div>
 
             @if (request('stage_id'))
-                <input
-                    type="hidden"
-                    id="lead_pipeline_stage_id"
-                    name="lead_pipeline_stage_id"
-                    value="{{ request('stage_id') }}"
-                />
+                <input type="hidden" id="lead_pipeline_stage_id" name="lead_pipeline_stage_id"
+                    value="{{ request('stage_id') }}" />
             @endif
 
             @if (request('pipeline_id'))
-                <input
-                    type="hidden"
-                    id="lead_pipeline_id"
-                    name="lead_pipeline_id"
-                    value="{{ request('pipeline_id') }}"
-                />
+                <input type="hidden" id="lead_pipeline_id" name="lead_pipeline_id"
+                    value="{{ request('pipeline_id') }}" />
             @endif
 
             <v-lead-create>
@@ -209,10 +202,18 @@
                 data() {
                     return {
                         activeTab: 'lead-details',
-                        tabs: [
-                            { id: 'lead-details',   label: @json(trans('admin::app.leads.create.details')) },
-                            { id: 'contact-person', label: @json(trans('admin::app.leads.create.contact-person')) },
-                            { id: 'products',       label: @json(trans('admin::app.leads.create.products')) },
+                        tabs: [{
+                                id: 'lead-details',
+                                label: @json(trans('admin::app.leads.create.details'))
+                            },
+                            {
+                                id: 'contact-person',
+                                label: @json(trans('admin::app.leads.create.contact-person'))
+                            },
+                            {
+                                id: 'products',
+                                label: @json(trans('admin::app.leads.create.products'))
+                            },
                         ],
 
                         leadTypeId: null,
@@ -223,12 +224,15 @@
 
                 mounted() {
                     this.initLeadTypeWatcher();
+                    this.loadPlanOptions();
                 },
 
                 methods: {
                     scrollToSection(tabId) {
                         const section = document.getElementById(tabId);
-                        if (section) section.scrollIntoView({ behavior: 'smooth' });
+                        if (section) section.scrollIntoView({
+                            behavior: 'smooth'
+                        });
                     },
 
                     initLeadTypeWatcher() {
@@ -257,7 +261,9 @@
                             const url = `{{ route('admin.leads.products.by_lead_type') }}?lead_type_id=${id}`;
 
                             const res = await fetch(url, {
-                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
                             });
 
                             const data = await res.json();
@@ -277,6 +283,29 @@
                             this.productsLoading = false;
                         }
                     },
+
+                    async loadPlanOptions() {
+                        try {
+                            const url = `{{ route('admin.leads.plan_options') }}`;
+
+                            const res = await fetch(url, {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            });
+
+                            const data = await res.json();
+
+                            window.dispatchEvent(new CustomEvent('lead-plan-options-updated', {
+                                detail: {
+                                    items: data.items || []
+                                }
+                            }));
+                        } catch (e) {
+                            console.error('loadPlanOptions failed', e);
+                        }
+                    },
+
                 },
             });
         </script>
@@ -284,7 +313,9 @@
 
     @pushOnce('styles')
         <style>
-            html { scroll-behavior: smooth; }
+            html {
+                scroll-behavior: smooth;
+            }
         </style>
     @endPushOnce
 </x-admin::layouts>

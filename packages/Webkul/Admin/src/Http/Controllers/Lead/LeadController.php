@@ -438,23 +438,61 @@ class LeadController extends Controller
      */
     public function addProduct(int $leadId): JsonResponse
     {
+        $productId = (int) request()->input('product_id');
+        $qty = (float) request()->input('quantity', 1);
+        $price = (float) request()->input('price', 0);
+        $planOptionId = request()->input('plan_option_id'); // nullable
+
         $product = $this->productRepository->updateOrCreate(
             [
                 'lead_id' => $leadId,
-                'product_id' => request()->input('product_id'),
+                'product_id' => $productId,
             ],
-            array_merge(
-                request()->all(),
-                [
-                    'lead_id' => $leadId,
-                    'amount' => request()->input('price') * request()->input('quantity'),
-                ],
-            )
+            [
+                'lead_id' => $leadId,
+                'product_id' => $productId,
+                'quantity' => $qty,
+                'price' => $price,
+                'amount' => $price * $qty,
+                'plan_option_id' => $planOptionId ? (int) $planOptionId : null,
+            ]
         );
 
         return response()->json([
             'data' => $product,
             'message' => trans('admin::app.leads.update-success'),
+        ]);
+    }
+
+    public function planOptions(): JsonResponse
+    {
+        // ✅ لو عايز تخليها dynamic كمان: ?code=Plan_P
+        $code = request()->query('code', 'Plan_P');
+
+        $attribute = DB::table('attributes')
+            ->where('entity_type', 'products')
+            ->where('code', $code)
+            ->first();
+
+        if (!$attribute) {
+            return response()->json([
+                'code' => $code,
+                'items' => [],
+            ]);
+        }
+
+        $items = DB::table('attribute_options')
+            ->where('attribute_id', $attribute->id)
+            ->orderBy('sort_order')
+            ->get([
+                'id',
+                DB::raw('name as label'), // ✅ عندك العمود اسمه name
+            ])
+            ->values();
+
+        return response()->json([
+            'code' => $code,
+            'items' => $items,
         ]);
     }
 
