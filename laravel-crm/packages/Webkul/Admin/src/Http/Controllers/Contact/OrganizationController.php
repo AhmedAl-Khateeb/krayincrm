@@ -76,41 +76,42 @@ class OrganizationController extends Controller
     public function edit(int $id): View
     {
         $organization = $this->organizationRepository->findOrFail($id);
-        $userIds = (array) VisibleUsers::ids();
+        $userIds = (array) (VisibleUsers::ids() ?? []);
 
-        if (!in_array($organization->user_id, $userIds)) {
+        // تجاوز الـ 403 إذا user_id فارغ على السيرفر
+        if ($organization->user_id !== null && !in_array($organization->user_id, $userIds)) {
             abort(403);
         }
 
         return view('admin::contacts.organizations.edit', compact('organization'));
     }
 
-//        public function edit(int $id): View
-// {
-//     $entity = $this->organizationRepository
-//         ->findOrFail($id);
+    //        public function edit(int $id): View
+    // {
+    //     $entity = $this->organizationRepository
+    //         ->findOrFail($id);
 
-//     $entity->loadMissing([
-//         'attributeValues' => function ($q) {
-//             $q->with('attribute.options');
-//         },
-//         'user'
-//     ]);
+    //     $entity->loadMissing([
+    //         'attributeValues' => function ($q) {
+    //             $q->with('attribute.options');
+    //         },
+    //         'user'
+    //     ]);
 
-//     $customAttributes = app('Webkul\Attribute\Repositories\AttributeRepository')
-//         ->scopeQuery(fn ($q) =>
-//             $q->where('entity_type', 'organizations')
-//               ->where('code', '!=', 'address')
-//         )
-//         ->with('options')
-//         ->get();
+    //     $customAttributes = app('Webkul\Attribute\Repositories\AttributeRepository')
+    //         ->scopeQuery(fn ($q) =>
+    //             $q->where('entity_type', 'organizations')
+    //               ->where('code', '!=', 'address')
+    //         )
+    //         ->with('options')
+    //         ->get();
 
-//     return view('admin::contacts.organizations.edit', [
-//         'entity'            => $entity,
-//         'organization'      => $entity,
-//         'customAttributes'  => $customAttributes,
-//     ]);
-// }
+    //     return view('admin::contacts.organizations.edit', [
+    //         'entity'            => $entity,
+    //         'organization'      => $entity,
+    //         'customAttributes'  => $customAttributes,
+    //     ]);
+    // }
 
     /**
      * Update the specified resource in storage.

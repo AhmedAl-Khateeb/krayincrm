@@ -69,11 +69,12 @@ class OrganizationController extends Controller
     public function edit(int $id): View
     {
         $organization = $this->organizationRepository->findOrFail($id);
-        $userIds = (array) VisibleUsers::ids();
+         $userIds = (array) (VisibleUsers::ids() ?? []);
 
-        if (!in_array($organization->user_id, $userIds)) {
-            abort(403);
-        }
+    // تجاوز الـ 403 إذا user_id فارغ على السيرفر
+    if ($organization->user_id !== null && !in_array($organization->user_id, $userIds)) {
+        abort(403);
+    }
 
         return view('admin::contacts.organizations.edit', compact('organization'));
     }
