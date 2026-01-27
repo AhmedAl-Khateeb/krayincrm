@@ -116,13 +116,18 @@ class PersonController extends Controller
     {
         $person = $this->personRepository->findOrFail($id);
 
-        $userIds = VisibleUsers::ids();
+        $userIds = VisibleUsers::ids(); // ممكن ترجع null أو array
+        $currentUserId = auth()->guard('user')->id();
 
-        // إذا null → admin/global → السماح بالوصول
+        // لو VisibleUsers رجعت null => admin/global => السماح
         if ($userIds !== null) {
             $userIds = (array) $userIds;
 
-            if (!empty($person->user_id) && !in_array($person->user_id, $userIds)) {
+            if (
+                !empty($person->user_id)
+                && (int) $person->user_id !== (int) $currentUserId
+                && !in_array((int) $person->user_id, array_map('intval', $userIds), true)
+            ) {
                 abort(403);
             }
         }
