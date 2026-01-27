@@ -11,11 +11,10 @@ class VisibleUsers
     {
         $u = auth()->guard('user')->user();
 
-        // ✅ DEBUG LOG (ضيفه هنا)
         Log::info('VISIBLE USERS DEBUG', [
-            'guard_user_id' => auth()->guard('user')->id(),
-            'default_guard_id' => auth()->id(),
-            'view_permission' => $u?->view_permission,
+            'guard_user_id'        => auth()->guard('user')->id(),
+            'default_guard_id'     => auth()->id(),
+            'view_permission'      => $u?->view_permission,
             'role_permission_type' => $u?->role?->permission_type,
         ]);
 
@@ -23,17 +22,26 @@ class VisibleUsers
             return [];
         }
 
-        $rolePermission = $u->role?->permission_type;
-        $viewPermission = $u->view_permission ?? 'self';
+        $rolePermission = $u->role?->permission_type;   // all | custom
+        $viewPermission = $u->view_permission ?? 'self'; // self | group | global
 
-        if ($rolePermission === 'all' || $viewPermission === 'global') {
-            return null;
+        // ✅ الأدمن فقط يشوف الكل
+        if ($rolePermission === 'all') {
+            return null; // no filtering
         }
 
+        // ✅ أي حد غير الأدمن: افرض self مهما كانت قيمة view_permission
+        // (يعني حتى لو حد مختار Global بالغلط مش هيشوف الكل)
+        if ($viewPermission === 'global') {
+            return [(int) $u->id];
+        }
+
+        // ✅ Self
         if ($viewPermission !== 'group') {
             return [(int) $u->id];
         }
 
+        // ✅ Group (لو لسه محتاجها)
         $groupIds = DB::table('user_groups')
             ->where('user_id', $u->id)
             ->pluck('group_id')
