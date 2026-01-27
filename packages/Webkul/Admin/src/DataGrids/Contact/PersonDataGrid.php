@@ -69,7 +69,7 @@ class PersonDataGrid extends DataGrid
         $userIds = VisibleUsers::ids();
 
         if ($userIds !== null) {
-            $queryBuilder->whereIn('persons.user_id', $userIds);
+            $queryBuilder->whereIn('persons.user_id', (array) $userIds);
         }
 
         $this->addFilter('id', 'persons.id');

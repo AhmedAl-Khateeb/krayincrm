@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class VisibleUsers
 {
@@ -10,14 +11,21 @@ class VisibleUsers
     {
         $u = auth()->guard('user')->user();
 
+        // ✅ DEBUG LOG (ضيفه هنا)
+        Log::info('VISIBLE USERS DEBUG', [
+            'guard_user_id' => auth()->guard('user')->id(),
+            'default_guard_id' => auth()->id(),
+            'view_permission' => $u?->view_permission,
+            'role_permission_type' => $u?->role?->permission_type,
+        ]);
+
         if (!$u) {
-            return []; // مش لوجين أصلا
+            return [];
         }
 
-        $rolePermission = $u->role?->permission_type; // all | custom
-        $viewPermission = $u->view_permission ?? 'self'; // self | group | global
+        $rolePermission = $u->role?->permission_type;
+        $viewPermission = $u->view_permission ?? 'self';
 
-        // Admin/global => بدون فلترة
         if ($rolePermission === 'all' || $viewPermission === 'global') {
             return null;
         }
