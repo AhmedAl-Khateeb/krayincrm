@@ -8,30 +8,28 @@ class VisibleUsers
 {
     public static function ids(): ?array
     {
-        $u = auth()->user();
+        $u = auth()->guard('user')->user();
 
         if (!$u) {
-            return [];
+            return []; // مش لوجين أصلا
         }
 
-        // ✅ Admin / Global permission: no filtering
-        $rolePermission = $u->role?->permission_type; // 'all' مثلاً
+        $rolePermission = $u->role?->permission_type; // all | custom
         $viewPermission = $u->view_permission ?? 'self'; // self | group | global
 
+        // Admin/global => بدون فلترة
         if ($rolePermission === 'all' || $viewPermission === 'global') {
             return null;
         }
 
-        // ✅ Self only
         if ($viewPermission !== 'group') {
             return [(int) $u->id];
         }
 
-        // ✅ Group
         $groupIds = DB::table('user_groups')
             ->where('user_id', $u->id)
             ->pluck('group_id')
-            ->filter()              // يشيل null
+            ->filter()
             ->map(fn ($id) => (int) $id)
             ->unique()
             ->values()

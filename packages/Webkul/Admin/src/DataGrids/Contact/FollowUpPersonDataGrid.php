@@ -59,8 +59,9 @@ class FollowUpPersonDataGrid extends DataGrid
 
         // ✅ هنا مهم: الفلترة على organizations.user_id مش persons.user_id
         $userIds = VisibleUsers::ids();
-        if (!empty($userIds)) {
-            $queryBuilder->whereIn('organizations.user_id', $userIds);
+
+        if ($userIds !== null) {
+            $queryBuilder->whereIn('organizations.user_id', (array) $userIds);
         }
 
         $this->addFilter('id', 'persons.id');
@@ -109,20 +110,19 @@ class FollowUpPersonDataGrid extends DataGrid
             'searchable' => true,
             'escape' => false,
             'closure' => function ($row) {
-    $numbers = collect(json_decode($row->contact_numbers, true) ?? [])
-        ->pluck('value')
-        ->filter()
-        ->values();
+                $numbers = collect(json_decode($row->contact_numbers, true) ?? [])
+                    ->pluck('value')
+                    ->filter()
+                    ->values();
 
-    if ($numbers->isEmpty()) {
-        return '--';
-    }
+                if ($numbers->isEmpty()) {
+                    return '--';
+                }
 
-    return $numbers->map(function ($num) {
+                return $numbers->map(function ($num) {
+                    $digits = preg_replace('/\D+/', '', (string) $num);
 
-        $digits = preg_replace('/\D+/', '', (string) $num);
-
-        return '<div class="flex items-center gap-2">
+                    return '<div class="flex items-center gap-2">
             <span class="text-sm text-gray-700 font-medium">
                 '.e($num).'
             </span>
@@ -132,10 +132,8 @@ class FollowUpPersonDataGrid extends DataGrid
                 Call
             </a>
         </div>';
-
-    })->implode('');
-},
-
+                })->implode('');
+            },
         ]);
 
         $this->addColumn([
