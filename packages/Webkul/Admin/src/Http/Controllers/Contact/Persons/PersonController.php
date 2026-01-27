@@ -117,18 +117,19 @@ class PersonController extends Controller
         $person = $this->personRepository->findOrFail($id);
 
         $userIds = VisibleUsers::ids(); // ممكن ترجع null أو array
-        $currentUserId = auth()->guard('user')->id();
+        $admin = auth()->guard('user')->user();
 
-        // لو VisibleUsers رجعت null => admin/global => السماح
-        if ($userIds !== null) {
-            $userIds = (array) $userIds;
+        $isSuper = $admin && $admin->role && $admin->role->permission_type === 'all';
 
-            if (
-                !empty($person->user_id)
-                && (int) $person->user_id !== (int) $currentUserId
-                && !in_array((int) $person->user_id, array_map('intval', $userIds), true)
-            ) {
-                abort(403);
+        if (!$isSuper) {
+            $userIds = VisibleUsers::ids();
+
+            if ($userIds !== null) {
+                $userIds = (array) $userIds;
+
+                if (!empty($person->user_id) && !in_array((int) $person->user_id, array_map('intval', $userIds), true)) {
+                    abort(403);
+                }
             }
         }
 
