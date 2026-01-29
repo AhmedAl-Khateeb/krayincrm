@@ -45,68 +45,193 @@ class LeadDataGrid extends DataGrid
     /**
      * Prepare query builder.
      */
+    // public function prepareQueryBuilder(): Builder
+    // {
+    //     $tablePrefix = DB::getTablePrefix();
+
+    //     $queryBuilder = DB::table('leads')
+    //         ->addSelect(
+    //             'leads.id',
+    //             'leads.title',
+    //             'leads.status',
+    //             'leads.lead_value',
+    //             'leads.expected_close_date',
+    //             'lead_sources.name as lead_source_name',
+    //             'lead_types.name as lead_type_name',
+    //             'leads.created_at',
+    //             'lead_pipeline_stages.name as stage',
+    //             'lead_tags.tag_id as tag_id',
+    //             'users.id as user_id',
+    //             'users.name as sales_person',
+    //             'persons.id as person_id',
+    //             'persons.name as person_name',
+    //             'persons.contact_numbers as contact_numbers', // ✅ مهم للـ Phone/Call
+    //             'tags.name as tag_name',
+    //             'lead_pipelines.rotten_days as pipeline_rotten_days',
+    //             'lead_pipeline_stages.code as stage_code',
+    //             DB::raw("'' as call_action"),  // //
+    //             DB::raw('CASE WHEN DATEDIFF(NOW(),'.$tablePrefix.'leads.created_at) >='.$tablePrefix.'lead_pipelines.rotten_days THEN 1 ELSE 0 END as rotten_lead'),
+    //         )
+    //         ->leftJoin('users', 'leads.user_id', '=', 'users.id')
+    //         ->leftJoin('persons', 'leads.person_id', '=', 'persons.id')
+    //         ->leftJoin('lead_types', 'leads.lead_type_id', '=', 'lead_types.id')
+    //         ->leftJoin('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
+    //         ->leftJoin('lead_sources', 'leads.lead_source_id', '=', 'lead_sources.id')
+    //         ->leftJoin('lead_pipelines', 'leads.lead_pipeline_id', '=', 'lead_pipelines.id')
+    //         ->leftJoin('lead_tags', 'leads.id', '=', 'lead_tags.lead_id')
+    //         ->leftJoin('tags', 'tags.id', '=', 'lead_tags.tag_id')
+    //         ->groupBy('leads.id')
+    //         ->where('leads.lead_pipeline_id', $this->pipeline->id);
+
+    //     if (request()->has('export')) {
+    //         $queryBuilder = $this->addLeadProductsToExportQuery($queryBuilder);
+    //         $queryBuilder = $this->addAllLeadAttributesToExportQuery($queryBuilder);
+    //     }
+
+    //     $userIds = VisibleUsers::ids();
+
+    //     if ($userIds !== null) {
+    //         $queryBuilder->whereIn('leads.user_id', $userIds);
+    //     }
+
+    //     if (!is_null(request()->input('rotten_lead.in'))) {
+    //         $queryBuilder->havingRaw($tablePrefix.'rotten_lead = '.request()->input('rotten_lead.in'));
+    //     }
+
+    //     $this->addFilter('id', 'leads.id');
+    //     $this->addFilter('user', 'leads.user_id');
+    //     $this->addFilter('sales_person', 'users.name');
+    //     $this->addFilter('lead_source_name', 'lead_sources.id');
+    //     $this->addFilter('lead_type_name', 'lead_types.id');
+    //     $this->addFilter('person_name', 'persons.name');
+    //     $this->addFilter('type', 'lead_pipeline_stages.code');
+    //     $this->addFilter('stage', 'lead_pipeline_stages.id');
+    //     $this->addFilter('tag_name', 'tags.name');
+    //     $this->addFilter('expected_close_date', 'leads.expected_close_date');
+    //     $this->addFilter('created_at', 'leads.created_at');
+    //     $this->addFilter('rotten_lead', DB::raw('DATEDIFF(NOW(), '.$tablePrefix.'leads.created_at) >= '.$tablePrefix.'lead_pipelines.rotten_days'));
+
+    //     return $queryBuilder;
+    // }
+
     public function prepareQueryBuilder(): Builder
     {
         $tablePrefix = DB::getTablePrefix();
+        $isExport = request()->has('export');
 
-        $queryBuilder = DB::table('leads')
-            ->addSelect(
-                'leads.id',
-                'leads.title',
-                'leads.status',
-                'leads.lead_value',
-                'leads.expected_close_date',
-                'lead_sources.name as lead_source_name',
-                'lead_types.name as lead_type_name',
-                'leads.created_at',
-                'lead_pipeline_stages.name as stage',
-                'lead_tags.tag_id as tag_id',
-                'users.id as user_id',
-                'users.name as sales_person',
-                'persons.id as person_id',
-                'persons.name as person_name',
-                'persons.contact_numbers as contact_numbers', // ✅ مهم للـ Phone/Call
-                'tags.name as tag_name',
-                'lead_pipelines.rotten_days as pipeline_rotten_days',
-                'lead_pipeline_stages.code as stage_code',
-                DB::raw("'' as call_action"),  // //
-                DB::raw('CASE WHEN DATEDIFF(NOW(),'.$tablePrefix.'leads.created_at) >='.$tablePrefix.'lead_pipelines.rotten_days THEN 1 ELSE 0 END as rotten_lead'),
-            )
-            ->leftJoin('users', 'leads.user_id', '=', 'users.id')
-            ->leftJoin('persons', 'leads.person_id', '=', 'persons.id')
-            ->leftJoin('lead_types', 'leads.lead_type_id', '=', 'lead_types.id')
-            ->leftJoin('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
-            ->leftJoin('lead_sources', 'leads.lead_source_id', '=', 'lead_sources.id')
-            ->leftJoin('lead_pipelines', 'leads.lead_pipeline_id', '=', 'lead_pipelines.id')
-            ->leftJoin('lead_tags', 'leads.id', '=', 'lead_tags.lead_id')
-            ->leftJoin('tags', 'tags.id', '=', 'lead_tags.tag_id')
-            ->groupBy('leads.id')
-            ->where('leads.lead_pipeline_id', $this->pipeline->id);
+        if ($isExport) {
+            $queryBuilder = DB::table('leads')
+                ->leftJoin('users', 'leads.user_id', '=', 'users.id')
+                ->leftJoin('persons', 'leads.person_id', '=', 'persons.id')
+                ->leftJoin('lead_types', 'leads.lead_type_id', '=', 'lead_types.id')
+                ->leftJoin('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
+                ->leftJoin('lead_sources', 'leads.lead_source_id', '=', 'lead_sources.id')
+                ->leftJoin('lead_pipelines', 'leads.lead_pipeline_id', '=', 'lead_pipelines.id')
+                ->where('leads.lead_pipeline_id', $this->pipeline->id)
+                ->select(
+                    'leads.id',
+                    'leads.title',
+                    'leads.status',
+                    'leads.lead_value',
+                    'leads.expected_close_date',
+                    'leads.created_at',
+                    'lead_sources.name as lead_source_name',
+                    'lead_types.name as lead_type_name',
+                    'lead_pipeline_stages.name as stage',
+                    'lead_pipeline_stages.code as stage_code',
+                    'users.name as sales_person',
+                    'persons.name as person_name',
+                    'persons.contact_numbers as contact_numbers',
+                    'lead_pipelines.rotten_days as pipeline_rotten_days',
+                    DB::raw("'' as call_action"),
+                    DB::raw('CASE WHEN DATEDIFF(NOW(), '.$tablePrefix.'leads.created_at) >= '.$tablePrefix.'lead_pipelines.rotten_days THEN 1 ELSE 0 END as rotten_lead')
+                );
 
+            // ✅ subqueries (مفيش تضخيم rows)
+            $queryBuilder = $this->addLeadTagsToExportQuery($queryBuilder);
+            $queryBuilder = $this->addLeadProductsToExportQuery($queryBuilder);
+            $queryBuilder = $this->addAllLeadAttributesToExportQuery($queryBuilder);
+
+        // ✅ مهم: التصدير مايمشيش على filters بتاعت UI
+        // (سيبها فاضية)
+        } else {
+            // ✅ الاستعلام العادي للشاشة
+            $queryBuilder = DB::table('leads')
+                ->addSelect(
+                    'leads.id',
+                    'leads.title',
+                    'leads.status',
+                    'leads.lead_value',
+                    'leads.expected_close_date',
+                    'lead_sources.name as lead_source_name',
+                    'lead_types.name as lead_type_name',
+                    'leads.created_at',
+                    'lead_pipeline_stages.name as stage',
+                    'lead_tags.tag_id as tag_id',
+                    'users.id as user_id',
+                    'users.name as sales_person',
+                    'persons.id as person_id',
+                    DB::raw('users.name as sales_owner'),
+                    'persons.name as person_name',
+                    'persons.contact_numbers as contact_numbers',
+                    'tags.name as tag_name',
+                    'lead_pipelines.rotten_days as pipeline_rotten_days',
+                    'lead_pipeline_stages.code as stage_code',
+                    DB::raw("'' as call_action"),
+                    DB::raw('CASE WHEN DATEDIFF(NOW(),'.$tablePrefix.'leads.created_at) >= '.$tablePrefix.'lead_pipelines.rotten_days THEN 1 ELSE 0 END as rotten_lead')
+                )
+                ->leftJoin('users', 'leads.user_id', '=', 'users.id')
+                ->leftJoin('persons', 'leads.person_id', '=', 'persons.id')
+                ->leftJoin('lead_types', 'leads.lead_type_id', '=', 'lead_types.id')
+                ->leftJoin('lead_pipeline_stages', 'leads.lead_pipeline_stage_id', '=', 'lead_pipeline_stages.id')
+                ->leftJoin('lead_sources', 'leads.lead_source_id', '=', 'lead_sources.id')
+                ->leftJoin('lead_pipelines', 'leads.lead_pipeline_id', '=', 'lead_pipelines.id')
+                ->leftJoin('lead_tags', 'leads.id', '=', 'lead_tags.lead_id')
+                ->leftJoin('tags', 'tags.id', '=', 'lead_tags.tag_id')
+                ->groupBy('leads.id')
+                ->where('leads.lead_pipeline_id', $this->pipeline->id);
+
+            // ✅ filters للـ UI فقط
+            $this->addFilter('id', 'leads.id');
+            $this->addFilter('user', 'leads.user_id');
+            $this->addFilter('sales_person', 'users.name');
+            $this->addFilter('lead_source_name', 'lead_sources.id');
+            $this->addFilter('lead_type_name', 'lead_types.id');
+            $this->addFilter('person_name', 'persons.name');
+            $this->addFilter('type', 'lead_pipeline_stages.code');
+            $this->addFilter('stage', 'lead_pipeline_stages.id');
+            $this->addFilter('tag_name', 'tags.name');
+            $this->addFilter('expected_close_date', 'leads.expected_close_date');
+            $this->addFilter('created_at', 'leads.created_at');
+            $this->addFilter('rotten_lead', DB::raw('DATEDIFF(NOW(), '.$tablePrefix.'leads.created_at) >= '.$tablePrefix.'lead_pipelines.rotten_days'));
+
+            if (!is_null(request()->input('rotten_lead.in'))) {
+                $queryBuilder->havingRaw($tablePrefix.'rotten_lead = '.request()->input('rotten_lead.in'));
+            }
+        }
+
+        // ✅ visible users ينفع في الاتنين
         $userIds = VisibleUsers::ids();
-
         if ($userIds !== null) {
             $queryBuilder->whereIn('leads.user_id', $userIds);
         }
 
-        if (!is_null(request()->input('rotten_lead.in'))) {
-            $queryBuilder->havingRaw($tablePrefix.'rotten_lead = '.request()->input('rotten_lead.in'));
-        }
-
-        $this->addFilter('id', 'leads.id');
-        $this->addFilter('user', 'leads.user_id');
-        $this->addFilter('sales_person', 'users.name');
-        $this->addFilter('lead_source_name', 'lead_sources.id');
-        $this->addFilter('lead_type_name', 'lead_types.id');
-        $this->addFilter('person_name', 'persons.name');
-        $this->addFilter('type', 'lead_pipeline_stages.code');
-        $this->addFilter('stage', 'lead_pipeline_stages.id');
-        $this->addFilter('tag_name', 'tags.name');
-        $this->addFilter('expected_close_date', 'leads.expected_close_date');
-        $this->addFilter('created_at', 'leads.created_at');
-        $this->addFilter('rotten_lead', DB::raw('DATEDIFF(NOW(), '.$tablePrefix.'leads.created_at) >= '.$tablePrefix.'lead_pipelines.rotten_days'));
-
         return $queryBuilder;
+    }
+
+    protected function addLeadTagsToExportQuery($queryBuilder)
+    {
+        $tagsSub = DB::table('lead_tags as lt')
+            ->leftJoin('tags as t', 't.id', '=', 'lt.tag_id')
+            ->select(
+                'lt.lead_id',
+                DB::raw("GROUP_CONCAT(DISTINCT t.name SEPARATOR ', ') as tag_name")
+            )
+            ->groupBy('lt.lead_id');
+
+        return $queryBuilder
+            ->leftJoinSub($tagsSub, 'tags_agg', 'tags_agg.lead_id', '=', 'leads.id')
+            ->addSelect('tags_agg.tag_name');
     }
 
     /**
@@ -394,6 +519,11 @@ class LeadDataGrid extends DataGrid
             'filterable' => true,
             'filterable_type' => 'date_range',
         ]);
+
+        if (request()->has('export')) {
+            $this->addLeadProductsExportColumns();
+            $this->addDynamicAttributeExportColumns();
+        }
     }
 
     /**
@@ -490,5 +620,165 @@ class LeadDataGrid extends DataGrid
                 'value' => $stage->id,
             ])->toArray(),
         ]);
+    }
+
+    protected function addDynamicAttributeExportColumns(): void
+    {
+        $attributes = DB::table('attributes')
+            ->where('entity_type', 'leads')
+            ->whereNotIn('code', ['title', 'description'])
+            ->orderBy('sort_order')
+            ->get(['code', 'name']);
+
+        foreach ($attributes as $attr) {
+            $this->addColumn([
+                'index' => 'attr_'.$attr->code,   // لازم يطابق alias
+                'label' => $attr->name,           // اسم العمود في Excel
+                'type' => 'string',
+                'sortable' => false,
+                'filterable' => false,
+                'searchable' => false,
+            ]);
+        }
+    }
+
+    // export file
+    protected function addAllLeadAttributesToExportQuery($queryBuilder)
+    {
+        $attributes = DB::table('attributes')
+            ->where('entity_type', 'leads')
+            ->whereNotIn('code', ['title', 'description'])
+            ->get(['id', 'code', 'type']);
+
+        if ($attributes->isEmpty()) {
+            return $queryBuilder;
+        }
+
+        $sub = DB::table('attribute_values as av')
+            ->where('av.entity_type', '=', 'leads')
+            ->select('av.entity_id as lead_id')
+            ->groupBy('av.entity_id');
+
+        foreach ($attributes as $attr) {
+            $alias = 'attr_'.$attr->code;
+
+            // ✅ لو select/multiselect: رجّع اسم option بدل id
+            if (in_array($attr->type, ['select', 'multiselect'])) {
+                $sub->addSelect(DB::raw("
+                MAX(
+                    CASE WHEN av.attribute_id = {$attr->id}
+                    THEN (SELECT ao.name FROM attribute_options ao WHERE ao.id = av.integer_value LIMIT 1)
+                    END
+                ) as {$alias}
+            "));
+            } else {
+                $col = $this->attributeValueColumnByType($attr->type);
+
+                $sub->addSelect(DB::raw("
+                MAX(
+                    CASE WHEN av.attribute_id = {$attr->id}
+                    THEN av.{$col}
+                    END
+                ) as {$alias}
+            "));
+            }
+        }
+
+        $queryBuilder->leftJoinSub($sub, 'attrs', 'attrs.lead_id', '=', 'leads.id');
+
+        foreach ($attributes as $attr) {
+            $queryBuilder->addSelect('attrs.attr_'.$attr->code);
+        }
+
+        return $queryBuilder;
+    }
+
+    protected function attributeValueColumnByType($type): string
+    {
+        return match ($type) {
+            'textarea', 'text' => 'text_value',
+            'select' => 'integer_value',
+            'multiselect' => 'text_value',
+            'integer' => 'integer_value',
+            'boolean' => 'boolean_value',
+            'date' => 'date_value',
+            'datetime' => 'datetime_value',
+            'price', 'decimal' => 'float_value',
+            default => 'text_value',
+        };
+    }
+
+    protected function addLeadProductsExportColumns(): void
+    {
+        $this->addColumn([
+            'index' => 'products_names',
+            'label' => 'Products',
+            'type' => 'string',
+            'sortable' => false,
+            'filterable' => false,
+            'searchable' => false,
+        ]);
+
+        $this->addColumn([
+            'index' => 'products_qtys',
+            'label' => 'Quantities',
+            'type' => 'string',
+            'sortable' => false,
+            'filterable' => false,
+            'searchable' => false,
+        ]);
+
+        $this->addColumn([
+            'index' => 'products_prices',
+            'label' => 'Prices',
+            'type' => 'string',
+            'sortable' => false,
+            'filterable' => false,
+            'searchable' => false,
+        ]);
+
+        $this->addColumn([
+            'index' => 'products_plans',
+            'label' => 'Plans',
+            'type' => 'string',
+            'sortable' => false,
+            'filterable' => false,
+            'searchable' => false,
+        ]);
+
+        $this->addColumn([
+            'index' => 'products_total_amount',
+            'label' => 'Total Amount',
+            'type' => 'string',
+            'sortable' => false,
+            'filterable' => false,
+            'searchable' => false,
+        ]);
+    }
+
+    protected function addLeadProductsToExportQuery($queryBuilder)
+    {
+        $prodSub = DB::table('lead_products as lp')
+            ->leftJoin('products as p', 'p.id', '=', 'lp.product_id')
+            ->leftJoin('attribute_options as ao', 'ao.id', '=', 'lp.plan_option_id')
+            ->select(
+                'lp.lead_id',
+                DB::raw("GROUP_CONCAT(DISTINCT p.name ORDER BY lp.id SEPARATOR ', ') as products_names"),
+                DB::raw("GROUP_CONCAT(lp.quantity ORDER BY lp.id SEPARATOR ', ') as products_qtys"),
+                DB::raw("GROUP_CONCAT(lp.price ORDER BY lp.id SEPARATOR ', ') as products_prices"),
+                DB::raw("GROUP_CONCAT(ao.name ORDER BY lp.id SEPARATOR ', ') as products_plans"),
+                DB::raw('SUM(COALESCE(lp.amount, 0)) as products_total_amount')
+            )
+            ->groupBy('lp.lead_id');
+
+        return $queryBuilder
+            ->leftJoinSub($prodSub, 'prod_agg', 'prod_agg.lead_id', '=', 'leads.id')
+            ->addSelect(
+                'prod_agg.products_names',
+                'prod_agg.products_qtys',
+                'prod_agg.products_prices',
+                'prod_agg.products_plans',
+                'prod_agg.products_total_amount'
+            );
     }
 }
