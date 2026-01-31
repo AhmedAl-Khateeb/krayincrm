@@ -7,12 +7,12 @@ use Webkul\Admin\Http\Controllers\User\ResetPasswordController;
 use Webkul\Admin\Http\Controllers\User\SessionController;
 
 Route::withoutMiddleware(['user'])->group(function () {
-    /**
+    /*
      * Redirect route.
      */
     Route::get('/', [Controller::class, 'redirectToLogin']);
 
-    /**
+    /*
      * Session routes.
      */
     Route::controller(SessionController::class)->group(function () {
@@ -27,7 +27,7 @@ Route::withoutMiddleware(['user'])->group(function () {
         });
     });
 
-    /**
+    /*
      * Forgot password routes.
      */
     Route::controller(ForgotPasswordController::class)->prefix('forget-password')->group(function () {
@@ -36,7 +36,7 @@ Route::withoutMiddleware(['user'])->group(function () {
         Route::post('', 'store')->name('admin.forgot_password.store');
     });
 
-    /**
+    /*
      * Reset password routes.
      */
     Route::controller(ResetPasswordController::class)->prefix('reset-password')->group(function () {

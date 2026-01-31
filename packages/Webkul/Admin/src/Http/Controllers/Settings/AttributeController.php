@@ -53,11 +53,22 @@ class AttributeController extends Controller
      */
     public function store(): RedirectResponse
     {
-        $this->validate(request(), [
-            'code' => ['required', 'unique:attributes,code,NULL,NULL,entity_type,'.request('entity_type'), new Code()],
-            'name' => 'required',
-            'type' => 'required',
+        // $this->validate(request(), [
+        //     'code' => ['required', 'unique:attributes,code,NULL,NULL,entity_type,'.request('entity_type'), new Code()],
+        //     'name' => 'required',
+        //     'type' => 'required',
+        // ]);
+
+        $existing = $this->attributeRepository->findOneWhere([
+            'code' => request('code'),
+            'entity_type' => request('entity_type'),
         ]);
+
+        if ($existing) {
+            $attribute = $this->attributeRepository->update(request()->all(), $existing->id);
+        } else {
+            $attribute = $this->attributeRepository->create(request()->all());
+        }
 
         Event::dispatch('settings.attribute.create.before');
 
@@ -87,17 +98,17 @@ class AttributeController extends Controller
      */
     public function update($id): RedirectResponse
     {
-        $this->validate(request(), [
-            'code' => [
-                'required',
-                new Code(),
-                Rule::unique('attributes', 'code')
-                    ->ignore($id)
-                    ->where(fn ($q) => $q->where('entity_type', request('entity_type'))),
-            ],
-            'name' => 'required',
-            'type' => 'required',
-        ]);
+        // $this->validate(request(), [
+        //     'code' => [
+        //         'required',
+        //         new Code(),
+        //         Rule::unique('attributes', 'code')
+        //             ->ignore($id)
+        //             ->where(fn ($q) => $q->where('entity_type', request('entity_type'))),
+        //     ],
+        //     'name' => 'required',
+        //     'type' => 'required',
+        // ]);
 
         Event::dispatch('settings.attribute.update.before', $id);
 

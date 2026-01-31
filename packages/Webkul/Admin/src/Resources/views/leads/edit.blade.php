@@ -7,17 +7,12 @@
     {!! view_render_event('admin.leads.edit.form_controls.before', ['lead' => $lead]) !!}
 
     <!-- Edit Lead Form -->
-    <x-admin::form
-        :action="route('admin.leads.update', $lead->id)"
-        method="PUT"
-    >
+    <x-admin::form :action="route('admin.leads.update', $lead->id)" method="PUT" enctype="multipart/form-data">
         <div class="flex flex-col gap-4">
-            <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+            <div
+                class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
                 <div class="flex flex-col gap-2">
-                    <x-admin::breadcrumbs
-                        name="leads.edit"
-                        :entity="$lead"
-                    />
+                    <x-admin::breadcrumbs name="leads.edit" :entity="$lead" />
 
                     <div class="text-xl font-bold dark:text-white">
                         @lang('admin::app.leads.edit.title')
@@ -31,10 +26,7 @@
                     <div class="flex items-center gap-x-2.5">
                         {!! view_render_event('admin.leads.edit.form_buttons.before') !!}
 
-                        <button
-                            type="submit"
-                            class="primary-button"
-                        >
+                        <button type="submit" class="primary-button">
                             @lang('admin::app.leads.edit.save-btn')
                         </button>
 
@@ -45,10 +37,11 @@
                 </div>
             </div>
 
-            <input type="hidden" id="lead_pipeline_stage_id" name="lead_pipeline_stage_id" value="{{ $lead->lead_pipeline_stage_id }}" />
+            <input type="hidden" id="lead_pipeline_stage_id" name="lead_pipeline_stage_id"
+                value="{{ $lead->lead_pipeline_stage_id }}" />
 
             <!-- Lead Edit Component -->
-            <v-lead-edit :lead="{{ json_encode($lead) }}">
+            <v-lead-edit :lead='@json($lead)'>
                 <x-admin::shimmer.leads.datagrid />
             </v-lead-edit>
         </div>
@@ -111,12 +104,14 @@
                                     'entity_type' => 'leads',
                                     'quick_add'   => 1
                                 ])"
-                                :custom-validations="[
-                                    'expected_close_date' => [
-                                        'date_format:yyyy-MM-dd',
-                                        'after:' .  \Carbon\Carbon::yesterday()->format('Y-m-d')
-                                    ],
-                                ]"
+ :custom-validations="[
+    'expected_close_date' => [
+        'date_format:YYYY-MM-DD HH:mm:ss',
+        'after:' . \Carbon\Carbon::yesterday()->format('Y-m-d')
+    ],
+]"
+
+
                                 :entity="$lead"
                             />
 
@@ -129,12 +124,15 @@
                                             'entity_type' => 'leads',
                                             'quick_add'   => 1
                                         ])"
-                                        :custom-validations="[
-                                            'expected_close_date' => [
-                                                'date_format:yyyy-MM-dd',
-                                                'after:' .  \Carbon\Carbon::yesterday()->format('Y-m-d')
-                                            ],
-                                        ]"
+ :custom-validations="[
+    'expected_close_date' => [
+        'date_format:YYYY-MM-DD HH:mm:ss',
+        'after:' . \Carbon\Carbon::yesterday()->format('Y-m-d')
+    ],
+]"
+
+
+
                                         :entity="$lead"
                                     />
                                 </div>
@@ -146,12 +144,14 @@
                                             'entity_type' => 'leads',
                                             'quick_add'   => 1
                                         ])"
-                                        :custom-validations="[
-                                            'expected_close_date' => [
-                                                'date_format:yyyy-MM-dd',
-                                                'after:' .  \Carbon\Carbon::yesterday()->format('Y-m-d')
-                                            ],
-                                        ]"
+:custom-validations="[
+    'expected_close_date' => [
+        'date_format:YYYY-MM-DD HH:mm:ss',
+        'after:' . \Carbon\Carbon::yesterday()->format('Y-m-d')
+    ],
+]"
+
+
                                         :entity="$lead"
                                         />
                                 </div>
@@ -226,16 +226,24 @@
                     return {
                         activeTab: 'lead-details',
 
-                        lead:  @json($lead),
+                        lead: @json($lead),
 
-                        person:  @json($lead->person),
+                        person: @json($lead->person),
 
                         products: @json($lead->products),
 
-                        tabs: [
-                            { id: 'lead-details', label: '@lang('admin::app.leads.edit.details')' },
-                            { id: 'contact-person', label: '@lang('admin::app.leads.edit.contact-person')' },
-                            { id: 'products', label: '@lang('admin::app.leads.edit.products')' }
+                        tabs: [{
+                                id: 'lead-details',
+                                label: '@lang('admin::app.leads.edit.details')'
+                            },
+                            {
+                                id: 'contact-person',
+                                label: '@lang('admin::app.leads.edit.contact-person')'
+                            },
+                            {
+                                id: 'products',
+                                label: '@lang('admin::app.leads.edit.products')'
+                            }
                         ],
                     };
                 },
@@ -252,7 +260,9 @@
                         const section = document.getElementById(tabId);
 
                         if (section) {
-                            section.scrollIntoView({ behavior: 'smooth' });
+                            section.scrollIntoView({
+                                behavior: 'smooth'
+                            });
                         }
                     },
                 },

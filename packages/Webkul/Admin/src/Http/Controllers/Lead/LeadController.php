@@ -213,7 +213,13 @@ class LeadController extends Controller
      */
     public function edit(int $id): View
     {
-        $lead = $this->leadRepository->findOrFail($id);
+        $lead = $this->leadRepository->with([
+            'person',
+            'products',
+            'attribute_values',
+            'attribute_values.attribute',
+        ])->findOrFail($id);
+        session()->forget('_old_input');
 
         return view('admin::leads.edit', compact('lead'));
     }

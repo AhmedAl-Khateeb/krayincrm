@@ -7,7 +7,7 @@
     @php
         $validations = [];
 
-        if ($attribute->is_required) {
+        if ($attribute->is_required && request()->routeIs('admin.leads.store')) {
             $validations[] = 'required';
         }
 
@@ -21,15 +21,31 @@
     @endphp
 
     @php
-        $attrVal = $entity?->attributeValues?->firstWhere('attribute_id', $attribute->id);
+        $attrVal = $entity?->attribute_values?->firstWhere('attribute_id', $attribute->id);
 
-        $value = match ($attribute->type) {
+        // 1) قيمة جاية من attribute_values (EAV)
+        $eavValue = match ($attribute->type) {
             'date' => $attrVal?->date_value,
             'datetime' => $attrVal?->datetime_value,
             'phone', 'email', 'address' => $attrVal?->json_value,
             default => $attrVal?->text_value,
         };
+
+        // 2) fallback: قيمة جاية من أعمدة جدول leads (column)
+        $columnValue = $entity?->{$attribute->code} ?? null;
+
+        // 3) لو الحقل select بيرجع id مخزن كـ integer/ text
+        // لو ده expected_close_date (بيحتاج Y-m-d) سواء كان date أو datetime
+        if ($attribute->code === 'expected_close_date' && ($eavValue || $columnValue)) {
+            $raw = $eavValue ?? $columnValue;
+            $columnValue = \Carbon\Carbon::parse($raw)->format('Y-m-d H:i:s');
+            $eavValue = null;
+        }
+
+        // 4) النهائي: old > eav > column
+        $value = old($attribute->code, $eavValue ?? $columnValue);
     @endphp
+
 
 
     <x-admin::form.control-group class="mb-2.5 w-full">

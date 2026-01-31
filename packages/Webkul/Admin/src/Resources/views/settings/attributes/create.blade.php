@@ -383,7 +383,7 @@
                     {!! view_render_event('admin.settings.attributes.create.accordion.validation.before') !!}
 
                     <!-- Validations -->
-                    <x-admin::accordion>
+                    {{-- <x-admin::accordion> --}}
                         <x-slot:header>
                             <p class="p-2.5 text-base font-semibold text-gray-800 dark:text-white">
                                 @lang('admin::app.settings.attributes.create.validations')
@@ -393,7 +393,6 @@
                         <x-slot:content>
                             {!! view_render_event('admin.settings.attributes.create.form_controls.validation.before') !!}
 
-                            <!-- Input Validation -->
                             <x-admin::form.control-group v-if="swatchAttribute && (attributeType == 'text')">
                                 <x-admin::form.control-group.label>
                                     @lang('admin::app.settings.attributes.create.input-validation')
@@ -410,7 +409,6 @@
                                     refs="validation"
                                     @change="inputValidation=true"
                                 >
-                                    <!-- Here! All Needed types are defined -->
                                     @foreach(['numeric', 'email', 'decimal', 'url'] as $type)
                                         <option value="{{ $type }}">
                                             @lang('admin::app.settings.attributes.create.' . $type)
@@ -425,7 +423,6 @@
 
                             {!! view_render_event('admin.settings.attributes.create.form_controls.is_required.before') !!}
 
-                            <!-- Is Required -->
                                 <x-admin::form.control-group class="!mb-2 flex items-center gap-2.5">
                                 <x-admin::form.control-group.control
                                     type="checkbox"
@@ -447,7 +444,6 @@
 
                             {!! view_render_event('admin.settings.attributes.create.form_controls.is_unique.before') !!}
 
-                            <!-- Is Unique -->
                             <x-admin::form.control-group class="!mb-0 flex select-none items-center gap-2.5">
                                 <x-admin::form.control-group.control
                                     type="checkbox"
@@ -467,7 +463,7 @@
 
                             {!! view_render_event('admin.settings.attributes.create.form_controls.is_unique.after') !!}
                         </x-slot>
-                    </x-admin::accordion>
+                    {{-- </x-admin::accordion> --}}
 
                     {!! view_render_event('admin.settings.attributes.create.accordion.validation.after') !!}
                 </div>
