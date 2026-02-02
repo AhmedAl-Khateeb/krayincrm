@@ -108,21 +108,22 @@ class LeadForm extends FormRequest
                     }
                 }
 
-                if ($attribute->is_unique) {
+                $isUpdate = request()->routeIs('admin.leads.update') || request()->is('admin/leads/edit/*');
+
+                if ($attribute->is_unique && !$isUpdate) {
                     array_push($validations[in_array($attribute->type, ['email', 'phone'])
-                        ? $attribute->code.'.*.value'
-                        : $attribute->code
-                    ], function ($field, $value, $fail) use ($attribute, $entityType) {
-                        if (!$this->attributeValueRepository->isValueUnique(
-                            $entityType == 'persons' ? request('person.id') : $this->id,
-                            $attribute->entity_type,
-                            $attribute,
-                            request($field)
-                        )
-                        ) {
-                            $fail('The value has already been taken.');
-                        }
-                    });
+        ? $attribute->code.'.*.value'
+        : $attribute->code
+    ], function ($field, $value, $fail) use ($attribute, $entityType) {
+        if (!$this->attributeValueRepository->isValueUnique(
+            $entityType == 'persons' ? request('person.id') : $this->id,
+            $attribute->entity_type,
+            $attribute,
+            request($field)
+        )) {
+            $fail('The value has already been taken.');
+        }
+    });
                 }
 
                 $this->rules = array_merge($this->rules, $validations);
