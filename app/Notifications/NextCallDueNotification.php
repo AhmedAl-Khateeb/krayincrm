@@ -27,6 +27,8 @@ class NextCallDueNotification extends Notification
     {
         $url = match ($this->entityType) {
             'organization' => route('admin.contacts.organizations.edit', $this->entityId),
+            'lead' => route('admin.leads.view', $this->entityId),
+            'person' => route('admin.contacts.persons.edit', $this->entityId),
             default => '#',
         };
 
@@ -44,6 +46,8 @@ class NextCallDueNotification extends Notification
     {
         $url = match ($this->entityType) {
             'organization' => route('admin.contacts.organizations.edit', $this->entityId),
+            'lead' => route('admin.leads.view', $this->entityId),
+            'person' => route('admin.contacts.persons.edit', $this->entityId),
             default => '#',
         };
 

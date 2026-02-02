@@ -22,7 +22,7 @@ class NotificationsController extends Controller
         // unread + latest
         $unreadCount = $user->unreadNotifications()->count();
 
-        $items = $user->notifications()
+        $items = $user->unreadNotifications()
             ->latest()
             ->limit($limit)
             ->get()
@@ -56,9 +56,6 @@ class NotificationsController extends Controller
 
         return response()->json(['ok' => true]);
     }
-
-    
-
 
     public function read(Request $request, string $id): JsonResponse
     {

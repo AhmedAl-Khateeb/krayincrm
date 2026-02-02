@@ -54,15 +54,13 @@ require 'configuration-routes.php';
  */
 require 'rest-routes.php';
 
+// Route::prefix('admin')->middleware(['auth:user'])->group(function () {
+//     Route::get('notifications', [NotificationsController::class, 'index'])
+//         ->name('admin.notifications.index');
 
+//     Route::post('notifications/read_all', [NotificationsController::class, 'readAll'])
+//         ->name('admin.notifications.read_all');
 
-Route::prefix('admin')->middleware(['auth:user'])->group(function () {
-    Route::get('notifications', [NotificationsController::class, 'index'])
-        ->name('admin.notifications.index');
-
-    Route::post('notifications/read_all', [NotificationsController::class, 'readAll'])
-        ->name('admin.notifications.read_all');
-
-    Route::post('notifications/read/{id}', [NotificationsController::class, 'read'])
-        ->name('admin.notifications.read_one'); 
-});
+//     Route::post('notifications/read/{id}', [NotificationsController::class, 'read'])
+//         ->name('admin.notifications.read_one');
+// });
