@@ -59,17 +59,6 @@ class AttributeController extends Controller
         //     'type' => 'required',
         // ]);
 
-        $existing = $this->attributeRepository->findOneWhere([
-            'code' => request('code'),
-            'entity_type' => request('entity_type'),
-        ]);
-
-        if ($existing) {
-            $attribute = $this->attributeRepository->update(request()->all(), $existing->id);
-        } else {
-            $attribute = $this->attributeRepository->create(request()->all());
-        }
-
         Event::dispatch('settings.attribute.create.before');
 
         request()->request->add(['quick_add' => 1]);
