@@ -57,7 +57,6 @@ class AttributeController extends Controller
         //     'name' => 'required',
         //     'type' => 'required',
         // ]);
-
         Event::dispatch('settings.attribute.create.before');
 
         request()->request->add(['quick_add' => 1]);
