@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Webkul\Admin\Http\Controllers\Settings\AttributeController;
 use Webkul\Admin\Http\Controllers\Settings\DataTransfer\ImportController;
+use Webkul\Admin\Http\Controllers\Settings\DataTransfer\UploadsController;
 use Webkul\Admin\Http\Controllers\Settings\EmailTemplateController;
 use Webkul\Admin\Http\Controllers\Settings\GroupController;
 use Webkul\Admin\Http\Controllers\Settings\LocationController;
@@ -22,11 +23,11 @@ use Webkul\Admin\Http\Controllers\Settings\WebFormController;
 use Webkul\Admin\Http\Controllers\Settings\WebhookController;
 use Webkul\Admin\Http\Controllers\Settings\WorkflowController;
 
-/**
+/*
  * Settings group routes.
  */
 Route::prefix('settings')->group(function () {
-    /**
+    /*
      * Settings routes.
      */
     Route::controller(SettingController::class)->prefix('settings')->group(function () {
@@ -35,7 +36,7 @@ Route::prefix('settings')->group(function () {
         Route::get('search', 'search')->name('admin.settings.search');
     });
 
-    /**
+    /*
      * Groups routes.
      */
     Route::controller(GroupController::class)->prefix('groups')->group(function () {
@@ -50,7 +51,7 @@ Route::prefix('settings')->group(function () {
         Route::delete('{id}', 'destroy')->name('admin.settings.groups.delete');
     });
 
-    /**
+    /*
      * Type routes.
      */
     Route::controller(TypeController::class)->prefix('types')->group(function () {
@@ -65,7 +66,7 @@ Route::prefix('settings')->group(function () {
         Route::delete('{id}', 'destroy')->name('admin.settings.types.delete');
     });
 
-    /**
+    /*
      * Roles routes.
      */
     Route::controller(RoleController::class)->prefix('roles')->group(function () {
@@ -82,7 +83,7 @@ Route::prefix('settings')->group(function () {
         Route::delete('{id}', 'destroy')->name('admin.settings.roles.delete');
     });
 
-    /**
+    /*
      * WebForms Routes.
      */
     Route::controller(WebFormController::class)->prefix('web-forms')->group(function () {
@@ -101,7 +102,7 @@ Route::prefix('settings')->group(function () {
         });
     });
 
-    /**
+    /*
      * Workflows Routes.
      */
     Route::controller(WorkflowController::class)->prefix('workflows')->group(function () {
@@ -118,7 +119,7 @@ Route::prefix('settings')->group(function () {
         Route::delete('{id}', 'destroy')->name('admin.settings.workflows.delete');
     });
 
-    /**
+    /*
      * Webhook Routes.
      */
     Route::controller(WebhookController::class)->prefix('webhooks')->group(function () {
@@ -135,7 +136,7 @@ Route::prefix('settings')->group(function () {
         Route::delete('{id}', 'destroy')->name('admin.settings.webhooks.delete');
     });
 
-    /**
+    /*
      * Tags Routes.
      */
     Route::controller(TagController::class)->prefix('tags')->group(function () {
@@ -154,7 +155,7 @@ Route::prefix('settings')->group(function () {
         Route::post('mass-destroy', 'massDestroy')->name('admin.settings.tags.mass_delete');
     });
 
-    /**
+    /*
      * Users Routes.
      */
     Route::controller(UserController::class)->prefix('users')->group(function () {
@@ -175,7 +176,7 @@ Route::prefix('settings')->group(function () {
         Route::post('mass-destroy', 'massDestroy')->name('admin.settings.users.mass_delete');
     });
 
-    /**
+    /*
      * Pipelines Routes.
      */
     Route::controller(PipelineController::class)->prefix('pipelines')->group(function () {
@@ -192,7 +193,7 @@ Route::prefix('settings')->group(function () {
         Route::delete('{id}', 'destroy')->name('admin.settings.pipelines.delete');
     });
 
-    /**
+    /*
      * Sources Routes.
      */
     Route::controller(SourceController::class)->prefix('sources')->group(function () {
@@ -207,7 +208,7 @@ Route::prefix('settings')->group(function () {
         Route::delete('{id}', 'destroy')->name('admin.settings.sources.delete');
     });
 
-    /**
+    /*
      * Attributes Routes.
      */
     Route::controller(AttributeController::class)->prefix('attributes')->group(function () {
@@ -238,7 +239,7 @@ Route::prefix('settings')->group(function () {
         Route::get('download', 'download')->name('admin.settings.attributes.download');
     });
 
-    /**
+    /*
      * Warehouses Routes.
      */
     Route::controller(WarehouseController::class)->prefix('warehouses')->group(function () {
@@ -271,7 +272,7 @@ Route::prefix('settings')->group(function () {
         });
     });
 
-    /**
+    /*
      * Warehouses Location Routes.
      */
     Route::controller(LocationController::class)->prefix('locations')->group(function () {
@@ -284,7 +285,7 @@ Route::prefix('settings')->group(function () {
         Route::delete('{id}', 'destroy')->name('admin.settings.locations.delete');
     });
 
-    /**
+    /*
      * Email Templates Routes.
      */
     Route::controller(EmailTemplateController::class)->prefix('email-templates')->group(function () {
@@ -301,7 +302,7 @@ Route::prefix('settings')->group(function () {
         Route::delete('{id}', 'destroy')->name('admin.settings.email_templates.delete');
     });
 
-    /**
+    /*
      * Events Routes.
      */
     Route::group(['prefix' => 'marketing'], function () {
@@ -339,7 +340,7 @@ Route::prefix('settings')->group(function () {
     });
 
     Route::prefix('data-transfer')->group(function () {
-        /**
+        /*
          * Import routes.
          */
         Route::controller(ImportController::class)->prefix('imports')->group(function () {

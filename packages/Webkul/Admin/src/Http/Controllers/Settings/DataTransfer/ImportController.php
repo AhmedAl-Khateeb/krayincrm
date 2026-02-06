@@ -4,6 +4,7 @@ namespace Webkul\Admin\Http\Controllers\Settings\DataTransfer;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -34,6 +35,8 @@ class ImportController extends Controller
             return datagrid(ImportDataGrid::class)->process();
         }
 
+        // $uploads = DB::table('uploads')->orderByDesc('id')->limit(50)->get();
+
         return view('admin::settings.data-transfer.imports.index');
     }
 
@@ -54,12 +57,11 @@ class ImportController extends Controller
 
         $this->validate(request(), [
             'type' => 'required|in:'.implode(',', $importers),
-            'action' => 'required:in:append,delete',
-            'validation_strategy' => 'required:in:stop-on-errors,skip-errors',
+            'action' => 'required|in:append,delete',
+            'validation_strategy' => 'required|in:stop-on-errors,skip-errors',
             'allowed_errors' => 'required|integer|min:0',
             'field_separator' => 'required',
-            // 'file'                => 'required|mimes:csv,xls,xlsx,txt',
-            'file' => 'required',
+            'file' => 'required|file', // ✅ أي ملف
         ]);
 
         Event::dispatch('data_transfer.imports.create.before');
@@ -69,35 +71,80 @@ class ImportController extends Controller
             'action',
             'process_in_queue',
             'validation_strategy',
-            'validation_strategy',
             'allowed_errors',
             'field_separator',
         ]);
 
-        if (!isset($data['process_in_queue'])) {
-            $data['process_in_queue'] = false;
-        } else {
-            $data['process_in_queue'] = true;
-        }
+        $data['process_in_queue'] = isset($data['process_in_queue']);
 
-        $import = $this->importRepository->create(
-            array_merge(
-                [
-                    'file_path' => request()->file('file')->storeAs(
-                        'imports',
-                        time().'-'.request()->file('file')->getClientOriginalName(),
-                        'public'
-                    ),
-                ],
-                $data
-            )
+        $file = request()->file('file');
+
+        $path = $file->storeAs(
+            'imports',
+            time().'-'.$file->getClientOriginalName(),
+            'public'
         );
+
+        // ✅ سجل في imports table
+        $import = $this->importRepository->create(array_merge([
+            'file_path' => $path,
+        ], $data));
 
         Event::dispatch('data_transfer.imports.create.after', $import);
 
-        session()->flash('success', trans('admin::app.settings.data-transfer.imports.create-success'));
+        // ✅ لو الملف مش من أنواع الاستيراد.. خلّصه وخلاص
+        $ext = strtolower($file->getClientOriginalExtension());
+        $importableExt = ['csv', 'xls', 'xlsx', 'txt'];
 
-        return redirect()->route('admin.settings.data_transfer.imports.index');
+        if (!in_array($ext, $importableExt)) {
+            // اعتبره "تم" بدون تشغيل import engine
+            $this->importRepository->update([
+                'state' => Import::STATE_COMPLETED,
+                'errors' => null,
+                'errors_count' => 0,
+            ], $import->id);
+
+            return redirect()
+                ->route('admin.settings.data_transfer.imports.index')
+                ->with('success', 'File uploaded ✅ (no import needed)');
+        }
+
+        // ✅ هنا بس شغّل import الطبيعي للملفات اللي ينفع تتحلل
+        $this->importHelper->setImport($import);
+
+        $isValid = $this->importHelper->validate();
+
+        if ($isValid) {
+            if ($import->process_in_queue) {
+                $this->importHelper->start();
+            } else {
+                $import->refresh();
+
+                while (true) {
+                    $import->refresh();
+                    $batch = $import->batches->where('state', Import::STATE_PENDING)->first();
+
+                    if (!$batch) {
+                        break;
+                    }
+
+                    $this->importHelper->setImport($import);
+                    $this->importHelper->start($batch);
+                }
+
+                if ($this->importHelper->isLinkingRequired()) {
+                    $this->importHelper->linking();
+                } elseif ($this->importHelper->isIndexingRequired()) {
+                    $this->importHelper->indexing();
+                } else {
+                    $this->importHelper->completed();
+                }
+            }
+        }
+
+        return redirect()
+            ->route('admin.settings.data_transfer.imports.index')
+            ->with('success', 'Imported ✅');
     }
 
     /**
@@ -121,7 +168,7 @@ class ImportController extends Controller
 
         $this->validate(request(), [
             'type' => 'required|in:'.implode(',', $importers),
-            'action' => 'required:in:append,delete',
+            'action' => 'required|in:append,delete',
             'validation_strategy' => 'required:in:stop-on-errors,skip-errors',
             'allowed_errors' => 'required|integer|min:0',
             'field_separator' => 'required',
@@ -170,6 +217,35 @@ class ImportController extends Controller
         }
 
         $import = $this->importRepository->update($data, $import->id);
+
+        $this->importHelper->setImport($import);
+
+        $isValid = $this->importHelper->validate();
+
+        if ($isValid) {
+            while (true) {
+                $import->refresh();
+
+                $batch = $import->batches()
+                    ->where('state', Import::STATE_PENDING)
+                    ->first();
+
+                if (!$batch) {
+                    break;
+                }
+
+                $this->importHelper->setImport($import);
+                $this->importHelper->start($batch);
+            }
+
+            if ($this->importHelper->isLinkingRequired()) {
+                $this->importHelper->linking();
+            } elseif ($this->importHelper->isIndexingRequired()) {
+                $this->importHelper->indexing();
+            } else {
+                $this->importHelper->completed();
+            }
+        }
 
         Event::dispatch('data_transfer.imports.update.after', $import);
 
