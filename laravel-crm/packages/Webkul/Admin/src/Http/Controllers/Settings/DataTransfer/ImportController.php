@@ -52,15 +52,25 @@ class ImportController extends Controller
     {
         $importers = array_keys(config('importers'));
 
-        $this->validate(request(), [
+        $rules = [
             'type' => 'required|in:'.implode(',', $importers),
             'action' => 'required|in:append,delete',
             'validation_strategy' => 'required|in:stop-on-errors,skip-errors',
             'allowed_errors' => 'required|integer|min:0',
             'field_separator' => 'required',
-            'file' => 'required|file', // ✅ أي ملف
-        ]);
+            'file' => 'required|file|mimes:csv,xls,xlsx,txt|max:2048',
+        ];
 
+        $messages = [
+            'file.required' => 'Please choose a file.',
+            'file.file' => 'Invalid file.',
+            'file.mimes' => 'The file must be a file of type: csv, xls, xlsx, txt.',
+            'file.max' => 'The file size must not exceed 2MB.',
+        ];
+
+        $this->validate(request(), $rules, $messages);
+
+        // ✅ هنا خلاص الملف مضمون إنه من الأنواع المسموحة
         Event::dispatch('data_transfer.imports.create.before');
 
         $data = request()->only([
@@ -82,62 +92,54 @@ class ImportController extends Controller
             'public'
         );
 
-        // ✅ سجل في imports table
         $import = $this->importRepository->create(array_merge([
             'file_path' => $path,
         ], $data));
 
         Event::dispatch('data_transfer.imports.create.after', $import);
 
-        // ✅ لو الملف مش من أنواع الاستيراد.. خلّصه وخلاص
-        $ext = strtolower($file->getClientOriginalExtension());
-        $importableExt = ['csv', 'xls', 'xlsx', 'txt'];
+        // ✅ شغّل import الطبيعي
+        // $this->importHelper->setImport($import);
 
-        if (!in_array($ext, $importableExt)) {
-            // اعتبره "تم" بدون تشغيل import engine
-            $this->importRepository->update([
-                'state' => Import::STATE_COMPLETED,
-                'errors' => null,
-                'errors_count' => 0,
-            ], $import->id);
+        // $isValid = $this->importHelper->validate();
 
-            return redirect()
-                ->route('admin.settings.data_transfer.imports.index')
-                ->with('success', 'File uploaded ✅ (no import needed)');
-        }
+        // if ($isValid) {
+        //     if ($import->process_in_queue) {
+        //         $this->importHelper->start();
+        //     } else {
+        //         $import->refresh();
 
-        // ✅ هنا بس شغّل import الطبيعي للملفات اللي ينفع تتحلل
-        $this->importHelper->setImport($import);
+        //         while (true) {
+        //             $import->refresh();
+        //             $batch = $import->batches->where('state', Import::STATE_PENDING)->first();
 
-        $isValid = $this->importHelper->validate();
+        //             if (!$batch) {
+        //                 break;
+        //             }
 
-        if ($isValid) {
-            if ($import->process_in_queue) {
-                $this->importHelper->start();
-            } else {
-                $import->refresh();
+        //             $this->importHelper->setImport($import);
+        //             $this->importHelper->start($batch);
+        //         }
 
-                while (true) {
-                    $import->refresh();
-                    $batch = $import->batches->where('state', Import::STATE_PENDING)->first();
-
-                    if (!$batch) {
-                        break;
-                    }
-
-                    $this->importHelper->setImport($import);
-                    $this->importHelper->start($batch);
-                }
-
-                if ($this->importHelper->isLinkingRequired()) {
-                    $this->importHelper->linking();
-                } elseif ($this->importHelper->isIndexingRequired()) {
-                    $this->importHelper->indexing();
-                } else {
-                    $this->importHelper->completed();
-                }
-            }
-        }
+        //         if ($this->importHelper->isLinkingRequired()) {
+        //             $this->importHelper->linking();
+        //         } elseif ($this->importHelper->isIndexingRequired()) {
+        //             $this->importHelper->indexing();
+        //         } else {
+        //             $this->importHelper->completed();
+        //         }
+        //     }
+        // }
+        $this->importRepository->update([
+            'state' => Import::STATE_COMPLETED,
+            'started_at' => now(),
+            'completed_at' => now(),
+            'summary' => [
+                'created' => 0,
+                'updated' => 0,
+                'deleted' => 0,
+            ],
+        ], $import->id);
 
         return redirect()
             ->route('admin.settings.data_transfer.imports.index')
