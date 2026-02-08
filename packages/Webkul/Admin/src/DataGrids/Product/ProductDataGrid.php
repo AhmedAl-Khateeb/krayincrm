@@ -18,7 +18,7 @@ class ProductDataGrid extends DataGrid
         $tablePrefix = DB::getTablePrefix();
 
         $planAttributeId = DB::table('attributes')
-        ->where('code', 'Plan_P')
+        ->where('code')
         ->where('entity_type', 'products')
         ->value('id');
 
@@ -43,7 +43,6 @@ class ProductDataGrid extends DataGrid
                 'products.sku',
                 'products.name',
                 'products.price',
-                'products.description',
                 'tags.name as tag_name',
                 DB::raw('MAX(plan_opt.name) as plan')
             )
@@ -99,38 +98,7 @@ class ProductDataGrid extends DataGrid
             'closure' => fn ($row) => round($row->price, 2),
         ]);
 
-        $this->addColumn([
-            'index' => 'description',
-            'label' => 'description',
-            'type' => 'string',
-            'sortable' => false,
-            'searchable' => true,
-            'filterable' => true,
-            'escape' => false,
-            'closure' => function ($row) {
-                $text = html_entity_decode($row->description ?? '');
-                $text = strip_tags($text);
-                $text = preg_replace('/\s+/', ' ', $text);
-                $text = trim($text);
-
-                $short = Str::limit($text, 50);
-
-                return '<span title="'.$text.'" style="display:block; max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">'
-                        .$short.
-                       '</span>';
-            },
-        ]);
-
-        $this->addColumn([
-            'index' => 'plan',
-            'label' => 'Plan',
-            'type' => 'string',
-            'sortable' => true,
-            'searchable' => true,
-            'filterable' => true,
-            'closure' => fn ($row) => $row->plan ?? '--',
-        ]);
-
+        
         $this->addColumn([
             'index' => 'total_in_stock',
             'label' => trans('admin::app.products.index.datagrid.in-stock'),

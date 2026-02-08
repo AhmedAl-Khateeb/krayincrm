@@ -23,7 +23,7 @@
         {!! view_render_event('admin.dashboard.index.header.right.before') !!}
 
         <!-- 🔔 Notifications Card -->
-        {{-- <div class="mb-4 w-full rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
+        <div class="mb-4 w-full rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
             <div class="flex items-center justify-between gap-3">
                 <div class="flex flex-col">
                     <strong class="text-sm text-gray-800 dark:text-white">Notifications</strong>
@@ -45,7 +45,7 @@
             <!-- LIST -->
             <div id="notif-card-list" class="mt-3 space-y-2 max-h-[250px] overflow-y-auto">
             </div>
-        </div> --}}
+        </div>
 
         <script>
             document.addEventListener('DOMContentLoaded', function() {

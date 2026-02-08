@@ -426,7 +426,7 @@
                     {!! view_render_event('admin.settings.attributes.edit.accordian.validations.before', ['attribute' => $attribute]) !!}
 
                     <!-- Validations -->
-                    {{-- <x-admin::accordion>
+                    <x-admin::accordion>
                         <x-slot:header>
                             <p class="p-2.5 text-base font-semibold text-gray-800 dark:text-white">
                                 @lang('admin::app.settings.attributes.edit.validations')
@@ -525,7 +525,7 @@
 
                             {!! view_render_event('admin.settings.attributes.edit.form_controls.is_unique.after', ['attribute' => $attribute]) !!}
                         </x-slot>
-                    </x-admin::accordion> --}}
+                    </x-admin::accordion>
 
                     {!! view_render_event('admin.settings.attributes.edit.accordian.validations.after', ['attribute' => $attribute]) !!}
                 </div>

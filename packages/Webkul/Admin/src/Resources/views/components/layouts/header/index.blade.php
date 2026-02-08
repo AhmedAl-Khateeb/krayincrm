@@ -48,43 +48,7 @@
 
 
 
-        <div class="relative" id="notif-wrap">
-            <button id="notif-bell" type="button"
-                class="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                <svg class="w-6 h-6 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-
-                <span id="notif-bell-count"
-                    class="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full"
-                    style="display:none;">0</span>
-            </button>
-
-            <div id="notif-dd"
-                class="hidden absolute right-0 mt-2 w-[360px] max-w-[90vw] rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-900 z-[9999]">
-                <div class="p-3 flex items-center justify-between">
-                    <div class="flex flex-col">
-                        <strong class="text-sm text-gray-800 dark:text-white">Notifications</strong>
-                        <span id="notif-dd-sub" class="text-[11px] text-gray-500 dark:text-gray-400">Loading...</span>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <button type="button" id="notif-dd-refresh"
-                            class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 hover:border-gray-400 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                            Refresh
-                        </button>
-
-                        <button type="button" id="notif-dd-readall" class="text-xs text-brandColor hover:underline">
-                            Mark all as read
-                        </button>
-                    </div>
-                </div>
-
-                <div id="notif-dd-list" class="px-3 pb-3 space-y-2 max-h-[320px] overflow-y-auto"></div>
-            </div>
-        </div>
+        
 
 
 

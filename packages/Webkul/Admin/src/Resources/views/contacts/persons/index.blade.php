@@ -65,12 +65,12 @@
                         <!-- ✅ Desktop Header -->
                         <div
                             class="row grid items-center border-b px-4 py-2.5 dark:border-gray-800 max-lg:hidden"
-                            style="grid-template-columns: .1fr .22fr .22fr .24fr .18fr .22fr .10fr;"
+                            style="grid-template-columns: .1fr .24fr .24fr .26fr .26fr .10fr;"
                         >
                             <!-- Columns -->
                             <div
                                 class="flex select-none items-center gap-2.5"
-                                v-for="(columnGroup, index) in [['id'], ['person_name'], ['emails'], ['contact_numbers'], ['call_status'], ['organization']]"
+                                v-for="(columnGroup, index) in [['id'], ['person_name'], ['emails'], ['contact_numbers'],['organization']]"
                             >
                                 <label
                                     class="flex w-max cursor-pointer select-none items-center gap-1"
@@ -207,7 +207,7 @@
                         <!-- ✅ Desktop Rows -->
                         <div
                             class="row grid grid-rows-1 border-b px-4 py-2.5 transition-all hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-950 max-lg:hidden"
-                            style="grid-template-columns: .1fr .22fr .22fr .22fr .12fr .22fr .10fr;"
+                            style="grid-template-columns: .1fr .24fr .24fr .28fr .24fr .10fr;"
                             v-for="record in available.records"
                         >
                             <!-- Mass Action + ID -->
@@ -246,7 +246,7 @@
                             <p class="flex items-center dark:text-gray-300" v-html="record.contact_numbers"></p>
 
                             <!-- Call Button -->
-<p class="flex items-center dark:text-gray-300" v-html="record.call_status"></p>
+{{-- <p class="flex items-center dark:text-gray-300" v-html="record.call_status"></p> --}}
 
                             <!-- Organization -->
                             <p class="flex items-center dark:text-gray-300">

@@ -737,14 +737,14 @@ class LeadDataGrid extends DataGrid
             'searchable' => false,
         ]);
 
-        $this->addColumn([
-            'index' => 'products_plans',
-            'label' => 'Plans',
-            'type' => 'string',
-            'sortable' => false,
-            'filterable' => false,
-            'searchable' => false,
-        ]);
+        // $this->addColumn([
+        //     'index' => 'products_plans',
+        //     'label' => 'Plans',
+        //     'type' => 'string',
+        //     'sortable' => false,
+        //     'filterable' => false,
+        //     'searchable' => false,
+        // ]);
 
         $this->addColumn([
             'index' => 'products_total_amount',
@@ -777,7 +777,7 @@ class LeadDataGrid extends DataGrid
                 'prod_agg.products_names',
                 'prod_agg.products_qtys',
                 'prod_agg.products_prices',
-                'prod_agg.products_plans',
+                // 'prod_agg.products_plans',
                 'prod_agg.products_total_amount'
             );
     }

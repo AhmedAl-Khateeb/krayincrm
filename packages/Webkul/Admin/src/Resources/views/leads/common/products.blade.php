@@ -29,10 +29,6 @@
                         
 
                         <x-admin::table.th class="text-center">
-                            @lang('admin::app.leads.common.products.plan')
-                        </x-admin::table.th>
-
-                        <x-admin::table.th class="text-center">
                             @lang('admin::app.leads.common.products.amount')
                         </x-admin::table.th>
 
@@ -132,26 +128,7 @@
             </x-admin::form.control-group>
         </x-admin::table.td>
 
-        <x-admin::table.td class="text-center">
-    <x-admin::form.control-group class="!mb-0">
-        <select
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-                   dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-            :name="`${inputName}[plan_option_id]`"
-            v-model="product.plan_option_id"
-        >
-            <option value="" disabled>{{ trans('admin::app.leads.common.products.select-plan') }}</option>
-
-            <option
-                v-for="opt in planOptions"
-                :key="opt.id"
-                :value="opt.id"
-            >
-                @{{ opt.label }}
-            </option>
-        </select>
-    </x-admin::form.control-group>
-</x-admin::table.td>
+      
 
 
         <x-admin::table.td class="text-right">

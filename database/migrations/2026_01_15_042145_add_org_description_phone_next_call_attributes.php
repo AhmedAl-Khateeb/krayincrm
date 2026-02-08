@@ -42,7 +42,7 @@ return new class extends Migration {
             [
                 'code' => 'next_call_at',
                 'name' => 'Next Call Date',
-                'type' => 'datetime',
+                'type' => 'date',
                 'lookup_type' => null,
                 'entity_type' => 'organizations',
                 'sort_order' => 3,

@@ -99,47 +99,37 @@ class ImportController extends Controller
         Event::dispatch('data_transfer.imports.create.after', $import);
 
         // ✅ شغّل import الطبيعي
-        // $this->importHelper->setImport($import);
+        $this->importHelper->setImport($import);
 
-        // $isValid = $this->importHelper->validate();
+        $isValid = $this->importHelper->validate();
 
-        // if ($isValid) {
-        //     if ($import->process_in_queue) {
-        //         $this->importHelper->start();
-        //     } else {
-        //         $import->refresh();
+        if ($isValid) {
+            if ($import->process_in_queue) {
+                $this->importHelper->start();
+            } else {
+                $import->refresh();
 
-        //         while (true) {
-        //             $import->refresh();
-        //             $batch = $import->batches->where('state', Import::STATE_PENDING)->first();
+                while (true) {
+                    $import->refresh();
+                    $batch = $import->batches->where('state', Import::STATE_PENDING)->first();
 
-        //             if (!$batch) {
-        //                 break;
-        //             }
+                    if (!$batch) {
+                        break;
+                    }
 
-        //             $this->importHelper->setImport($import);
-        //             $this->importHelper->start($batch);
-        //         }
+                    $this->importHelper->setImport($import);
+                    $this->importHelper->start($batch);
+                }
 
-        //         if ($this->importHelper->isLinkingRequired()) {
-        //             $this->importHelper->linking();
-        //         } elseif ($this->importHelper->isIndexingRequired()) {
-        //             $this->importHelper->indexing();
-        //         } else {
-        //             $this->importHelper->completed();
-        //         }
-        //     }
-        // }
-        $this->importRepository->update([
-            'state' => Import::STATE_COMPLETED,
-            'started_at' => now(),
-            'completed_at' => now(),
-            'summary' => [
-                'created' => 0,
-                'updated' => 0,
-                'deleted' => 0,
-            ],
-        ], $import->id);
+                if ($this->importHelper->isLinkingRequired()) {
+                    $this->importHelper->linking();
+                } elseif ($this->importHelper->isIndexingRequired()) {
+                    $this->importHelper->indexing();
+                } else {
+                    $this->importHelper->completed();
+                }
+            }
+        }
 
         return redirect()
             ->route('admin.settings.data_transfer.imports.index')

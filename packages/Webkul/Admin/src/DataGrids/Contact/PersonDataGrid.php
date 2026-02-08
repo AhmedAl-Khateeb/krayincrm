@@ -164,39 +164,7 @@ class PersonDataGrid extends DataGrid
             },
         ]);
 
-        $this->addColumn([
-            'index' => 'call_status',
-            'label' => 'Call Status',
-            'type' => 'string',
-            'filterable' => true,
-            'exportable' => false,
-            'sortable' => true,
-            'searchable' => true,
-            'escape' => false,
-            'closure' => function ($row) {
-                $status = trim((string) ($row->call_status ?? ''));
-
-                if ($status === '') {
-                    return '--';
-                }
-
-                // ✅ لو Export: نص بس
-                if (request()->has('export')) {
-                    return $status;
-                }
-
-                // ✅ Badge للعرض
-                $hash = crc32($status);
-                $h = $hash % 360;
-                $bg = "hsl($h, 85%, 92%)";
-                $fg = "hsl($h, 70%, 28%)";
-
-                return '<span style="background:'.$bg.'; color:'.$fg.';"
-        class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold">
-        '.e($status).'
-    </span>';
-            },
-        ]);
+  
 
         $this->addColumn([
             'index' => 'organization',

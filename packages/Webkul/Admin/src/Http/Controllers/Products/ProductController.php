@@ -89,7 +89,7 @@ class ProductController extends Controller
         // ✅ هات attribute ids ديناميك من code
         $attrIds = DB::table('attributes')
             ->where('entity_type', 'products')
-            ->whereIn('code', ['name', 'sku', 'description', 'price', 'quantity', 'Plan_P'])
+            ->whereIn('code', ['name', 'sku', 'price', 'quantity'])
             ->pluck('id', 'code')
             ->toArray();
 
@@ -112,21 +112,6 @@ class ProductController extends Controller
 
             if (!empty($attrIds['sku'])) {
                 $upsert($attrIds['sku'], ['text_value' => $product->sku]);
-            }
-
-            if (!empty($attrIds['description'])) {
-                $upsert($attrIds['description'], ['text_value' => $product->description]);
-            }
-
-            if (!empty($attrIds['Plan_P'])) {
-                DB::table('attribute_values')->updateOrInsert(
-                    [
-                        'entity_type' => 'products',
-                        'entity_id' => $product->id,
-                        'attribute_id' => $attrIds['Plan_P'],
-                    ],
-                    ['unique_id' => (string) Str::uuid()]
-                );
             }
         }
 

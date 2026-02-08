@@ -110,7 +110,7 @@ class AttributeDataGrid extends DataGrid
             'searchable' => true,
             'filterable' => false,
             'sortable' => true,
-            'closure' => fn () => trans('admin::app.settings.attributes.index.datagrid.no'),
+            'closure' => fn () => trans('admin::app.settings.attributes.index.datagrid.yes'),
         ]);
     }
 
